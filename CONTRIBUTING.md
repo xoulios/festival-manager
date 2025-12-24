@@ -1,0 +1,19 @@
+# Contributing
+
+## Branching model
+- main: stable releases only
+- dev: integration branch
+- feature branches: feature/<short-name>
+- bugfix branches: fix/<short-name>
+
+## Commit message convention
+- feat: ...
+- fix: ...
+- docs: ...
+- test: ...
+- refactor: ...
+- chore: ...
+
+## Pull Requests
+- PRs go into dev
+- main only via PR from dev when a milestone is stable
