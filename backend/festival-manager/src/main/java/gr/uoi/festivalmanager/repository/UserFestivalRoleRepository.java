@@ -4,5 +4,8 @@ import gr.uoi.festivalmanager.entity.UserFestivalRole;
 import gr.uoi.festivalmanager.entity.UserFestivalRoleId;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface UserFestivalRoleRepository extends JpaRepository<UserFestivalRole, UserFestivalRoleId> {}
-boolean existsByUserIdAndFestivalId(Long userId, Long festivalId);
+public interface UserFestivalRoleRepository extends JpaRepository<UserFestivalRole, UserFestivalRoleId> {
+
+    boolean existsByUserIdAndFestivalId(Long userId, Long festivalId);
+
+}
