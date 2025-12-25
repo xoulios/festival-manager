@@ -3,7 +3,10 @@ package gr.uoi.festivalmanager.entity;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "user_festival_roles")
+@Table(name = "user_festival_roles",
+  uniqueConstraints = {
+    @UniqueConstraint(name = "uk_user_festival", columnNames = {"user_id", "festival_id"})
+  })
 public class UserFestivalRole {
 
     @EmbeddedId
