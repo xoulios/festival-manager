@@ -2,7 +2,7 @@ package gr.uoi.festivalmanager.enums;
 
 public enum FestivalState {
     CREATED,
-    SUBMISSIONS_OPEN,
+    SUBMISSION,
     ASSIGNMENT,
     REVIEW,
     SCHEDULING,
