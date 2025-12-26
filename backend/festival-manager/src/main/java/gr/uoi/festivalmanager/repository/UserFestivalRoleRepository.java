@@ -6,6 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface UserFestivalRoleRepository extends JpaRepository<UserFestivalRole, UserFestivalRoleId> {
 
-    boolean existsByUserIdAndFestivalId(Long userId, Long festivalId);
+    boolean existsByIdUserIdAndIdFestivalId(Long userId, Long festivalId);
 
 }
