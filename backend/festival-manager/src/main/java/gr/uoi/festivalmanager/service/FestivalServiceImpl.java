@@ -1,5 +1,9 @@
 package gr.uoi.festivalmanager.service;
 
+import gr.uoi.festivalmanager.dto.AssignRoleRequest;
+import gr.uoi.festivalmanager.dto.FestivalCreateRequest;
+import gr.uoi.festivalmanager.dto.FestivalResponse;
+import gr.uoi.festivalmanager.dto.FestivalUpdateRequest;
 import gr.uoi.festivalmanager.entity.Festival;
 import gr.uoi.festivalmanager.entity.Role;
 import gr.uoi.festivalmanager.entity.User;
@@ -16,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 @Service
-@Transactional
 public class FestivalServiceImpl implements FestivalService {
 
     private final FestivalRepository festivalRepository;
@@ -37,77 +40,91 @@ public class FestivalServiceImpl implements FestivalService {
     }
 
     @Override
-    public Festival createFestival(Festival festival) {
+    @Transactional
+    public FestivalResponse createFestival(FestivalCreateRequest request) {
+        Festival festival = new Festival();
+        festival.setTitle(request.getTitle());
+        festival.setDescription(request.getDescription());
+        festival.setStartDate(request.getStartDate());
+        festival.setEndDate(request.getEndDate());
         festival.setState(FestivalState.CREATED);
-        return festivalRepository.save(festival);
+
+        Festival saved = festivalRepository.save(festival);
+        return toResponse(saved);
     }
 
     @Override
-    public Festival updateFestival(Long id, Festival festival) {
-        Festival existing = festivalRepository.findById(id)
-                .orElseThrow(() -> new BusinessRuleException("Festival not found"));
-
-        if (existing.getState() != FestivalState.CREATED) {
-            throw new BusinessRuleException("Festival can only be updated in CREATED state");
-        }
-
-        existing.setTitle(festival.getTitle());
-        existing.setDescription(festival.getDescription());
-        existing.setStartDate(festival.getStartDate());
-        existing.setEndDate(festival.getEndDate());
-
-        return festivalRepository.save(existing);
-    }
-
-    @Override
-    public void deleteFestival(Long id) {
-        Festival existing = festivalRepository.findById(id)
-                .orElseThrow(() -> new BusinessRuleException("Festival not found"));
-
-        if (existing.getState() != FestivalState.CREATED) {
-            throw new BusinessRuleException("Festival can only be deleted in CREATED state");
-        }
-
-        festivalRepository.delete(existing);
-    }
-
-    @Override
-    public Festival changeState(Long id, FestivalState newState) {
+    @Transactional
+    public FestivalResponse updateFestival(Long id, FestivalUpdateRequest request) {
         Festival festival = festivalRepository.findById(id)
                 .orElseThrow(() -> new BusinessRuleException("Festival not found"));
 
-        FestivalState current = festival.getState();
+        festival.setTitle(request.getTitle());
+        festival.setDescription(request.getDescription());
+        festival.setStartDate(request.getStartDate());
+        festival.setEndDate(request.getEndDate());
 
-        if (!isValidTransition(current, newState)) {
-            throw new BusinessRuleException("Invalid festival state transition: " + current + " -> " + newState);
+        Festival saved = festivalRepository.save(festival);
+        return toResponse(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<FestivalResponse> listFestivals() {
+        return festivalRepository.findAll().stream().map(this::toResponse).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public FestivalResponse getFestival(Long id) {
+        Festival festival = festivalRepository.findById(id)
+                .orElseThrow(() -> new BusinessRuleException("Festival not found"));
+        return toResponse(festival);
+    }
+
+    @Override
+    @Transactional
+    public void deleteFestival(Long id) {
+        if (!festivalRepository.existsById(id)) {
+            throw new BusinessRuleException("Festival not found");
         }
+        festivalRepository.deleteById(id);
+    }
+
+    @Override
+    @Transactional
+    public FestivalResponse changeState(Long id, FestivalState newState) {
+        Festival festival = festivalRepository.findById(id)
+                .orElseThrow(() -> new BusinessRuleException("Festival not found"));
 
         festival.setState(newState);
-        return festivalRepository.save(festival);
+
+        Festival saved = festivalRepository.save(festival);
+        return toResponse(saved);
     }
 
     @Override
-    public FestivalState getState(Long id) {
-        Festival festival = festivalRepository.findById(id)
-                .orElseThrow(() -> new BusinessRuleException("Festival not found"));
-        return festival.getState();
-    }
-
-    @Override
-    public List<Festival> getAllFestivals() {
-        return festivalRepository.findAll();
-    }
-
-    @Override
+    @Transactional
     public void assignRole(Long festivalId, Long userId, Long roleId) {
+    assignRole(festivalId, new AssignRoleRequest(userId, roleId));
+    }
+
+    
+    @Override
+    @Transactional
+    public void assignRole(Long festivalId, AssignRoleRequest request) {
         Festival festival = festivalRepository.findById(festivalId)
                 .orElseThrow(() -> new BusinessRuleException("Festival not found"));
 
         if (festival.getState() != FestivalState.ASSIGNMENT) {
-            throw new BusinessRuleException("Roles can only be assigned in ASSIGNMENT state");
+            throw new BusinessRuleException("Roles can be assigned only in ASSIGNMENT state");
         }
 
-        if (userFestivalRoleRepository.existsByIdUserIdAndIdFestivalId(userId, festivalId)) {
+        Long userId = request.getUserId();
+        Long roleId = request.getRoleId();
+
+        boolean alreadyHasRole = userFestivalRoleRepository.existsByIdUserIdAndIdFestivalId(userId, festivalId);
+        if (alreadyHasRole) {
             throw new BusinessRuleException("User already has a role in this festival");
         }
 
@@ -117,22 +134,23 @@ public class FestivalServiceImpl implements FestivalService {
         Role role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new BusinessRuleException("Role not found"));
 
-        UserFestivalRole userFestivalRole = new UserFestivalRole(user, festival, role);
-        userFestivalRoleRepository.save(userFestivalRole);
+        userFestivalRoleRepository.save(new UserFestivalRole(user, festival, role));
     }
 
-    private boolean isValidTransition(FestivalState current, FestivalState next) {
-        if (current == next) return true;
+    @Override
+    @Transactional
+    public void assignRole(Long organizerId, Long festivalId, Long userId, Long roleId) {
+        assignRole(festivalId, new AssignRoleRequest(userId, roleId));
+    }
 
-        return switch (current) {
-            case CREATED -> next == FestivalState.SUBMISSION;
-            case SUBMISSION -> next == FestivalState.ASSIGNMENT;
-            case ASSIGNMENT -> next == FestivalState.REVIEW;
-            case REVIEW -> next == FestivalState.SCHEDULING;
-            case SCHEDULING -> next == FestivalState.FINAL_SUBMISSION;
-            case FINAL_SUBMISSION -> next == FestivalState.DECISION;
-            case DECISION -> next == FestivalState.ANNOUNCED;
-            case ANNOUNCED -> false;
-        };
+    private FestivalResponse toResponse(Festival f) {
+        return new FestivalResponse(
+                f.getId(),
+                f.getTitle(),
+                f.getDescription(),
+                f.getStartDate(),
+                f.getEndDate(),
+                f.getState() == null ? null : f.getState().name()
+        );
     }
 }
