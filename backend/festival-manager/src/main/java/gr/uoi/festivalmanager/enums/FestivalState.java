@@ -8,5 +8,6 @@ public enum FestivalState {
     SCHEDULING,
     FINAL_SUBMISSION,
     DECISION,
-    ANNOUNCED
+    ANNOUNCED,
+    COMPLETE
 }

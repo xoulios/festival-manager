@@ -27,11 +27,12 @@ public class UserFestivalRoleId implements Serializable {
     }
 
     public Long getUserId() { return userId; }
-    public Long getFestivalId() { return festivalId; }
-    public Long getRoleId() { return roleId; }
-
     public void setUserId(Long userId) { this.userId = userId; }
+
+    public Long getFestivalId() { return festivalId; }
     public void setFestivalId(Long festivalId) { this.festivalId = festivalId; }
+
+    public Long getRoleId() { return roleId; }
     public void setRoleId(Long roleId) { this.roleId = roleId; }
 
     @Override
