@@ -3,8 +3,10 @@ package gr.uoi.festivalmanager.enums;
 public enum PerformanceState {
     CREATED,
     SUBMITTED,
-    WITHDRAWN,
+    REVIEWED,
     APPROVED,
+    SCHEDULED,
     REJECTED,
+    WITHDRAWN,
     FINAL_SUBMITTED
 }
