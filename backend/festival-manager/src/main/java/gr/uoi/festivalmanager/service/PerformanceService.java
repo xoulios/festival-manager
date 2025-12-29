@@ -3,6 +3,8 @@ package gr.uoi.festivalmanager.service;
 import gr.uoi.festivalmanager.entity.Performance;
 import gr.uoi.festivalmanager.dto.FinalSubmitRequest;
 import gr.uoi.festivalmanager.dto.ReviewRequest;
+import java.util.List;
+
 
 public interface PerformanceService {
 
@@ -23,4 +25,6 @@ public interface PerformanceService {
     Performance schedulePerformance(Long performanceId, Long schedulerId, String scheduledSlot);
 
     Performance finalSubmitPerformance(Long performanceId, Long artistId, FinalSubmitRequest request);
+    
+    List<Performance> searchPerformances(Long festivalId, String query);
 }

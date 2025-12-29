@@ -16,6 +16,12 @@ import gr.uoi.festivalmanager.repository.UserFestivalRoleRepository;
 import gr.uoi.festivalmanager.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
+
 
 import java.time.LocalDateTime;
 
@@ -299,4 +305,50 @@ public class PerformanceServiceImpl implements PerformanceService {
     private boolean isBlank(String s) {
         return s == null || s.trim().isEmpty();
     }
+
+        @Override
+    @Transactional(readOnly = true)
+    public List<Performance> searchPerformances(Long festivalId, String query) {
+        List<Performance> all = performanceRepository.findByFestivalId(festivalId);
+
+        List<String> tokens = tokenize(query);
+
+        return all.stream()
+                .filter(p -> matchesAllTokens(p, tokens))
+                .sorted(
+                        Comparator
+                                .comparing((Performance p) -> safeLower(p.getGenre()), Comparator.nullsLast(String::compareTo))
+                                .thenComparing(p -> safeLower(p.getName()), Comparator.nullsLast(String::compareTo))
+                )
+                .collect(Collectors.toList());
+    }
+
+    private List<String> tokenize(String query) {
+        if (query == null || query.trim().isEmpty()) return List.of();
+
+        return Arrays.stream(query.trim().toLowerCase(Locale.ROOT).split("\\s+"))
+                .filter(t -> !t.isBlank())
+                .distinct()
+                .toList();
+    }
+
+    private boolean matchesAllTokens(Performance p, List<String> tokens) {
+        if (tokens.isEmpty()) return true;
+
+        String haystack = (
+                safeLower(p.getName()) + " " +
+                safeLower(p.getDescription()) + " " +
+                safeLower(p.getGenre())
+        );
+
+        for (String t : tokens) {
+            if (!haystack.contains(t)) return false;
+        }
+        return true;
+    }
+
+    private String safeLower(String s) {
+        return s == null ? "" : s.toLowerCase(Locale.ROOT);
+    }
+
 }

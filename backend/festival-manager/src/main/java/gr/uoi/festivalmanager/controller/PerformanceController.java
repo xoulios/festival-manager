@@ -9,6 +9,7 @@ import gr.uoi.festivalmanager.dto.ReviewRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/performances")
@@ -76,4 +77,13 @@ public ResponseEntity<Performance> review(
     public ResponseEntity<Performance> finalSubmit(@PathVariable Long id, @RequestParam Long userId, @RequestBody FinalSubmitRequest request) {
         return ResponseEntity.ok(performanceService.finalSubmitPerformance(id, userId, request));
     }
+
+        @GetMapping("/search")
+    public ResponseEntity<List<Performance>> search(
+            @RequestParam Long festivalId,
+            @RequestParam(name = "q", required = false) String q
+    ) {
+        return ResponseEntity.ok(performanceService.searchPerformances(festivalId, q));
+    }
+
 }
