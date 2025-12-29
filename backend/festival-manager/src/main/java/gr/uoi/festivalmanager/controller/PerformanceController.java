@@ -5,6 +5,7 @@ import gr.uoi.festivalmanager.dto.RejectRequest;
 import gr.uoi.festivalmanager.dto.ScheduleRequest;
 import gr.uoi.festivalmanager.entity.Performance;
 import gr.uoi.festivalmanager.service.PerformanceService;
+import gr.uoi.festivalmanager.dto.ReviewRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -46,9 +47,13 @@ public class PerformanceController {
     }
 
     @PostMapping("/{id}/review")
-    public ResponseEntity<Performance> review(@PathVariable Long id, @RequestParam Long userId) {
-        return ResponseEntity.ok(performanceService.reviewPerformance(id, userId));
-    }
+public ResponseEntity<Performance> review(
+        @PathVariable Long id,
+        @RequestParam Long userId,
+        @RequestBody ReviewRequest request
+) {
+    return ResponseEntity.ok(performanceService.reviewPerformance(id, userId, request));
+}
 
     @PostMapping("/{id}/approve")
     public ResponseEntity<Performance> approve(@PathVariable Long id, @RequestParam Long userId) {

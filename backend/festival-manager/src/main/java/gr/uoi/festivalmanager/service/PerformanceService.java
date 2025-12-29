@@ -2,6 +2,7 @@ package gr.uoi.festivalmanager.service;
 
 import gr.uoi.festivalmanager.entity.Performance;
 import gr.uoi.festivalmanager.dto.FinalSubmitRequest;
+import gr.uoi.festivalmanager.dto.ReviewRequest;
 
 public interface PerformanceService {
 
@@ -13,8 +14,8 @@ public interface PerformanceService {
 
     Performance withdrawPerformance(Long performanceId);
 
-    Performance reviewPerformance(Long performanceId, Long staffId);
-
+    Performance reviewPerformance(Long performanceId, Long staffId, ReviewRequest request);
+    
     Performance approvePerformance(Long performanceId, Long staffId);
 
     Performance rejectPerformance(Long performanceId, Long staffId, String reason);

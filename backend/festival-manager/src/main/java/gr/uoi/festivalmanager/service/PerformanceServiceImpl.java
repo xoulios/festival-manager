@@ -1,14 +1,17 @@
 package gr.uoi.festivalmanager.service;
 
 import gr.uoi.festivalmanager.dto.FinalSubmitRequest;
+import gr.uoi.festivalmanager.dto.ReviewRequest;
 import gr.uoi.festivalmanager.entity.Festival;
 import gr.uoi.festivalmanager.entity.Performance;
+import gr.uoi.festivalmanager.entity.Review;
 import gr.uoi.festivalmanager.entity.User;
 import gr.uoi.festivalmanager.enums.FestivalState;
 import gr.uoi.festivalmanager.enums.PerformanceState;
 import gr.uoi.festivalmanager.exception.BusinessRuleException;
 import gr.uoi.festivalmanager.repository.FestivalRepository;
 import gr.uoi.festivalmanager.repository.PerformanceRepository;
+import gr.uoi.festivalmanager.repository.ReviewRepository;
 import gr.uoi.festivalmanager.repository.UserFestivalRoleRepository;
 import gr.uoi.festivalmanager.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -23,17 +26,20 @@ public class PerformanceServiceImpl implements PerformanceService {
     private final FestivalRepository festivalRepository;
     private final UserRepository userRepository;
     private final UserFestivalRoleRepository userFestivalRoleRepository;
+    private final ReviewRepository reviewRepository;
 
     public PerformanceServiceImpl(
             PerformanceRepository performanceRepository,
             FestivalRepository festivalRepository,
             UserRepository userRepository,
-            UserFestivalRoleRepository userFestivalRoleRepository
+            UserFestivalRoleRepository userFestivalRoleRepository,
+            ReviewRepository reviewRepository
     ) {
         this.performanceRepository = performanceRepository;
         this.festivalRepository = festivalRepository;
         this.userRepository = userRepository;
         this.userFestivalRoleRepository = userFestivalRoleRepository;
+        this.reviewRepository = reviewRepository;
     }
 
     @Override
@@ -115,7 +121,7 @@ public class PerformanceServiceImpl implements PerformanceService {
 
     @Override
     @Transactional
-    public Performance reviewPerformance(Long performanceId, Long staffId) {
+    public Performance reviewPerformance(Long performanceId, Long staffId, ReviewRequest request) {
         Performance p = performanceRepository.findById(performanceId)
                 .orElseThrow(() -> new BusinessRuleException("Performance not found"));
 
@@ -128,9 +134,29 @@ public class PerformanceServiceImpl implements PerformanceService {
         if (p.getState() != PerformanceState.SUBMITTED) {
             throw new BusinessRuleException("Only SUBMITTED performances can be reviewed");
         }
+        if (request == null) {
+            throw new BusinessRuleException("Review payload is required");
+        }
+        if (request.getScore() < 0 || request.getScore() > 10) {
+            throw new BusinessRuleException("score must be between 0 and 10");
+        }
+        if (request.getComments() == null || request.getComments().trim().isEmpty()) {
+            throw new BusinessRuleException("comments are required");
+        }
+
+        User reviewer = userRepository.findById(staffId)
+                .orElseThrow(() -> new BusinessRuleException("Reviewer not found"));
+
+        Review review = new Review();
+        review.setPerformance(p);
+        review.setReviewer(reviewer);
+        review.setScore(request.getScore());
+        review.setComments(request.getComments().trim());
+        reviewRepository.save(review);
 
         p.setState(PerformanceState.REVIEWED);
         p.setReviewedAt(LocalDateTime.now());
+
         return performanceRepository.save(p);
     }
 
@@ -169,10 +195,19 @@ public class PerformanceServiceImpl implements PerformanceService {
         if (p.getState() != PerformanceState.REVIEWED) {
             throw new BusinessRuleException("Only REVIEWED performances can be rejected");
         }
-
         if (reason == null || reason.trim().isEmpty()) {
             throw new BusinessRuleException("Rejection reason is required");
         }
+
+        User reviewer = userRepository.findById(staffId)
+                .orElseThrow(() -> new BusinessRuleException("Reviewer not found"));
+
+        Review review = new Review();
+        review.setPerformance(p);
+        review.setReviewer(reviewer);
+        review.setScore(0);
+        review.setComments("REJECT: " + reason.trim());
+        reviewRepository.save(review);
 
         p.setState(PerformanceState.REJECTED);
         return performanceRepository.save(p);
