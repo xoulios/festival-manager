@@ -420,6 +420,51 @@ public class PerformanceServiceImpl implements PerformanceService {
         return performanceRepository.save(performance);
     }
 
+    @Override
+    @Transactional
+    public Performance finalAccept(Long performanceId, Long programmerId) {
+    Performance p = performanceRepository.findById(performanceId)
+            .orElseThrow(() -> new BusinessRuleException("Performance not found"));
+
+    Festival festival = p.getFestival();
+
+    if (festival.getState() != FestivalState.DECISION) {
+        throw new BusinessRuleException("Final decisions are allowed only in DECISION state");
+    }
+
+    if (!userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(programmerId, festival.getId(), "PROGRAMMER")) {
+        throw new BusinessRuleException("Only PROGRAMMER can make final decisions");
+    }
+
+    if (p.getState() != PerformanceState.FINAL_SUBMITTED) {
+        throw new BusinessRuleException("Only FINAL_SUBMITTED performances can be accepted");
+    }
+
+    return p;
+    }
+
+    @Override
+    @Transactional
+    public Performance finalReject(Long performanceId, Long programmerId, String reason) {
+    Performance p = performanceRepository.findById(performanceId)
+            .orElseThrow(() -> new BusinessRuleException("Performance not found"));
+
+    Festival festival = p.getFestival();
+
+    if (festival.getState() != FestivalState.DECISION) {
+        throw new BusinessRuleException("Final decisions are allowed only in DECISION state");
+    }
+
+    if (!userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(programmerId, festival.getId(), "PROGRAMMER")) {
+        throw new BusinessRuleException("Only PROGRAMMER can make final decisions");
+    }
+
+    p.setState(PerformanceState.REJECTED);
+    performanceRepository.save(p);
+
+    return p;
+    }
+
 
     private List<String> tokenize(String query) {
         if (query == null || query.trim().isEmpty()) return List.of();

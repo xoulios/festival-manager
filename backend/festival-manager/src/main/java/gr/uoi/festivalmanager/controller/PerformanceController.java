@@ -49,13 +49,31 @@ public class PerformanceController {
     }
 
     @PostMapping("/{id}/review")
-public ResponseEntity<Performance> review(
+    public ResponseEntity<Performance> review(
         @PathVariable Long id,
         @RequestParam Long userId,
         @RequestBody ReviewRequest request
-) {
+    ) {
     return ResponseEntity.ok(performanceService.reviewPerformance(id, userId, request));
-}
+    }
+
+    @PostMapping("/{id}/final-accept")
+    public ResponseEntity<Performance> finalAccept(
+        @PathVariable Long id,
+        @RequestParam Long userId
+    ) {
+    return ResponseEntity.ok(performanceService.finalAccept(id, userId));
+    }
+
+    @PostMapping("/{id}/final-reject")
+    public ResponseEntity<Performance> finalReject(
+        @PathVariable Long id,
+        @RequestParam Long userId,
+        @RequestParam String reason
+    ) {
+    return ResponseEntity.ok(performanceService.finalReject(id, userId, reason));
+    }
+
 
     @PostMapping("/{id}/approve")
     public ResponseEntity<Performance> approve(@PathVariable Long id, @RequestParam Long userId) {

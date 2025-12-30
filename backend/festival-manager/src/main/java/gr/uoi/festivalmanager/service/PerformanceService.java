@@ -28,6 +28,10 @@ public interface PerformanceService {
     
     Performance assignHandler(Long performanceId, Long programmerId, Long staffId);
 
+    Performance finalAccept(Long performanceId, Long programmerId);
+    
+    Performance finalReject(Long performanceId, Long programmerId, String reason);
+
     List<PerformanceViewDto> searchPerformancesView(Long festivalId, Long userId, String query);
 
     List<Performance> searchPerformances(Long festivalId, String query);

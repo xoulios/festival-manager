@@ -68,14 +68,23 @@ public class FestivalController {
     }
 
     @PostMapping("/{festivalId}/assign-role")
-public ResponseEntity<Void> assignRoleLegacy(
+    public ResponseEntity<Void> assignRoleLegacy(
         @PathVariable Long festivalId,
         @RequestParam("userId") Long userId,
         @RequestParam("roleId") Long roleId
-) {
+    ) {
     festivalService.assignRole(festivalId, userId, roleId);
     return ResponseEntity.ok().build();
-}
+    }
+
+        @PostMapping("/{id}/decision")
+    public ResponseEntity<FestivalResponse> moveToDecision(
+        @PathVariable Long id,
+        @RequestParam Long userId
+    ) {
+        return ResponseEntity.ok(festivalService.moveToDecision(id, userId));
+    }
+
 
 
     @DeleteMapping("/{id}")
