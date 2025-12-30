@@ -9,6 +9,7 @@ import gr.uoi.festivalmanager.dto.ReviewRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import gr.uoi.festivalmanager.dto.PerformanceViewDto;
 import java.util.List;
 
 @RestController
@@ -48,13 +49,31 @@ public class PerformanceController {
     }
 
     @PostMapping("/{id}/review")
-public ResponseEntity<Performance> review(
+    public ResponseEntity<Performance> review(
         @PathVariable Long id,
         @RequestParam Long userId,
         @RequestBody ReviewRequest request
-) {
+    ) {
     return ResponseEntity.ok(performanceService.reviewPerformance(id, userId, request));
-}
+    }
+
+    @PostMapping("/{id}/final-accept")
+    public ResponseEntity<Performance> finalAccept(
+        @PathVariable Long id,
+        @RequestParam Long userId
+    ) {
+    return ResponseEntity.ok(performanceService.finalAccept(id, userId));
+    }
+
+    @PostMapping("/{id}/final-reject")
+    public ResponseEntity<Performance> finalReject(
+        @PathVariable Long id,
+        @RequestParam Long userId,
+        @RequestParam String reason
+    ) {
+    return ResponseEntity.ok(performanceService.finalReject(id, userId, reason));
+    }
+
 
     @PostMapping("/{id}/approve")
     public ResponseEntity<Performance> approve(@PathVariable Long id, @RequestParam Long userId) {
@@ -78,12 +97,31 @@ public ResponseEntity<Performance> review(
         return ResponseEntity.ok(performanceService.finalSubmitPerformance(id, userId, request));
     }
 
+    @PostMapping("/{id}/assign-handler")
+    public ResponseEntity<Performance> assignHandler(
+            @PathVariable Long id,
+            @RequestParam Long userId,   
+            @RequestParam Long staffId
+    ) {
+        return ResponseEntity.ok(performanceService.assignHandler(id, userId, staffId));
+    }
+
+
         @GetMapping("/search")
     public ResponseEntity<List<Performance>> search(
             @RequestParam Long festivalId,
             @RequestParam(name = "q", required = false) String q
     ) {
         return ResponseEntity.ok(performanceService.searchPerformances(festivalId, q));
+    }
+
+        @GetMapping("/search-view")
+    public ResponseEntity<List<PerformanceViewDto>> searchView(
+            @RequestParam Long festivalId,
+            @RequestParam Long userId,
+            @RequestParam(name = "q", required = false) String q
+    ) {
+        return ResponseEntity.ok(performanceService.searchPerformancesView(festivalId, userId, q));
     }
 
 }

@@ -16,13 +16,13 @@ import gr.uoi.festivalmanager.repository.UserFestivalRoleRepository;
 import gr.uoi.festivalmanager.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import gr.uoi.festivalmanager.dto.PerformanceViewDto;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
-
-
+import java.util.Optional;
 import java.time.LocalDateTime;
 
 @Service
@@ -283,6 +283,76 @@ public class PerformanceServiceImpl implements PerformanceService {
         return performanceRepository.save(p);
     }
 
+        @Override
+    @Transactional(readOnly = true)
+    public List<PerformanceViewDto> searchPerformancesView(Long festivalId, Long userId, String query) {
+
+        List<Performance> matches = searchPerformances(festivalId, query);
+
+        return matches.stream()
+                .map(p -> toViewDto(p, userId))
+                .filter(dto -> dto != null)
+                .toList();
+    }
+
+    private PerformanceViewDto toViewDto(Performance p, Long userId) {
+        Long festivalId = p.getFestival().getId();
+        boolean isProgrammer = hasRole(userId, festivalId, "PROGRAMMER") || hasRole(userId, festivalId, "ORGANIZER");
+        boolean isStaff = hasRole(userId, festivalId, "STAFF");
+        boolean isArtist = hasRole(userId, festivalId, "ARTIST") && p.getArtist() != null && userId.equals(p.getArtist().getId());
+        boolean isAssignedStaff = isStaff && p.getHandler() != null && p.getHandler().getId() != null && p.getHandler().getId().equals(userId);
+        boolean isVisitor = !isProgrammer && !isStaff && !isArtist;
+
+        if (isVisitor) {
+            switch (p.getState()) {
+                case SCHEDULED, FINAL_SUBMITTED -> { /* ok */ }
+                default -> { return null; }
+            }
+        }
+
+        if (isStaff && !isProgrammer && !isAssignedStaff) {
+            return null;
+        }
+
+        PerformanceViewDto dto = new PerformanceViewDto();
+        dto.setId(p.getId());
+        dto.setFestivalId(festivalId);
+        dto.setName(p.getName());
+        dto.setGenre(p.getGenre());
+        dto.setDescription(p.getDescription());
+
+        if (!isVisitor) {
+            dto.setState(p.getState() == null ? null : p.getState().name());
+        } else {
+            dto.setState(p.getState() == null ? null : p.getState().name());
+        }
+
+        if (isProgrammer || isAssignedStaff || isArtist) {
+            dto.setScheduledSlot(p.getScheduledSlot());
+        }
+
+        if (isProgrammer || isArtist || isAssignedStaff) {
+            dto.setPreferredRehearsalTimes(p.getPreferredRehearsalTimes());
+            dto.setPreferredTimeSlots(p.getPreferredTimeSlots());
+        }
+
+        if (isProgrammer || isAssignedStaff || isArtist) {
+            dto.setFinalSetlist(p.getFinalSetlist());
+            dto.setFinalRehearsalTimes(p.getFinalRehearsalTimes());
+            dto.setFinalTimeSlots(p.getFinalTimeSlots());
+        }
+
+        if (isProgrammer || isAssignedStaff) {
+            Optional<Review> last = reviewRepository.findTopByPerformanceIdOrderByIdDesc(p.getId());
+            if (last.isPresent()) {
+                dto.setLastReviewScore(last.get().getScore());
+                dto.setLastReviewComments(last.get().getComments());
+            }
+        }
+
+        return dto;
+    }
+
 
     private Festival requireFestival(Performance p) {
         Festival f = p.getFestival();
@@ -322,6 +392,79 @@ public class PerformanceServiceImpl implements PerformanceService {
                 )
                 .collect(Collectors.toList());
     }
+
+    @Override
+    @Transactional
+    public Performance assignHandler(Long performanceId, Long programmerId, Long staffId) {
+        Performance performance = performanceRepository.findById(performanceId)
+                .orElseThrow(() -> new BusinessRuleException("Performance not found"));
+
+        Festival festival = performance.getFestival();
+
+        if (festival.getState() != FestivalState.ASSIGNMENT) {
+            throw new BusinessRuleException("Handler assignment is allowed only in ASSIGNMENT state");
+        }
+
+        if (!userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(programmerId, festival.getId(), "PROGRAMMER")) {
+            throw new BusinessRuleException("Only PROGRAMMER can assign handlers");
+        }
+
+        if (!userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(staffId, festival.getId(), "STAFF")) {
+            throw new BusinessRuleException("Assigned handler must be STAFF in this festival");
+        }
+
+        User staff = userRepository.findById(staffId)
+                .orElseThrow(() -> new BusinessRuleException("User not found"));
+
+        performance.setHandler(staff);
+        return performanceRepository.save(performance);
+    }
+
+    @Override
+    @Transactional
+    public Performance finalAccept(Long performanceId, Long programmerId) {
+    Performance p = performanceRepository.findById(performanceId)
+            .orElseThrow(() -> new BusinessRuleException("Performance not found"));
+
+    Festival festival = p.getFestival();
+
+    if (festival.getState() != FestivalState.DECISION) {
+        throw new BusinessRuleException("Final decisions are allowed only in DECISION state");
+    }
+
+    if (!userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(programmerId, festival.getId(), "PROGRAMMER")) {
+        throw new BusinessRuleException("Only PROGRAMMER can make final decisions");
+    }
+
+    if (p.getState() != PerformanceState.FINAL_SUBMITTED) {
+        throw new BusinessRuleException("Only FINAL_SUBMITTED performances can be accepted");
+    }
+
+    return p;
+    }
+
+    @Override
+    @Transactional
+    public Performance finalReject(Long performanceId, Long programmerId, String reason) {
+    Performance p = performanceRepository.findById(performanceId)
+            .orElseThrow(() -> new BusinessRuleException("Performance not found"));
+
+    Festival festival = p.getFestival();
+
+    if (festival.getState() != FestivalState.DECISION) {
+        throw new BusinessRuleException("Final decisions are allowed only in DECISION state");
+    }
+
+    if (!userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(programmerId, festival.getId(), "PROGRAMMER")) {
+        throw new BusinessRuleException("Only PROGRAMMER can make final decisions");
+    }
+
+    p.setState(PerformanceState.REJECTED);
+    performanceRepository.save(p);
+
+    return p;
+    }
+
 
     private List<String> tokenize(String query) {
         if (query == null || query.trim().isEmpty()) return List.of();

@@ -23,6 +23,14 @@ public class Performance {
     @JoinColumn(name = "artist_id", nullable = false)
     private User artist;
 
+    @ManyToOne(optional = true)
+    @JoinColumn(name = "handler_id")
+    private User handler;
+
+    public User getHandler() { return handler; }
+    public void setHandler(User handler) { this.handler = handler; }
+
+
     @Column(nullable = false)
     private String name;
 

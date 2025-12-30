@@ -8,15 +8,17 @@ import gr.uoi.festivalmanager.entity.Festival;
 import gr.uoi.festivalmanager.entity.Role;
 import gr.uoi.festivalmanager.entity.User;
 import gr.uoi.festivalmanager.entity.UserFestivalRole;
+import gr.uoi.festivalmanager.entity.Performance;
+import gr.uoi.festivalmanager.enums.PerformanceState;
 import gr.uoi.festivalmanager.enums.FestivalState;
 import gr.uoi.festivalmanager.exception.BusinessRuleException;
 import gr.uoi.festivalmanager.repository.FestivalRepository;
 import gr.uoi.festivalmanager.repository.RoleRepository;
 import gr.uoi.festivalmanager.repository.UserFestivalRoleRepository;
 import gr.uoi.festivalmanager.repository.UserRepository;
+import gr.uoi.festivalmanager.repository.PerformanceRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
 
 @Service
@@ -26,18 +28,22 @@ public class FestivalServiceImpl implements FestivalService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final UserFestivalRoleRepository userFestivalRoleRepository;
+    private final PerformanceRepository performanceRepository;
 
     public FestivalServiceImpl(
-            FestivalRepository festivalRepository,
-            UserRepository userRepository,
-            RoleRepository roleRepository,
-            UserFestivalRoleRepository userFestivalRoleRepository
+        FestivalRepository festivalRepository,
+        UserRepository userRepository,
+        RoleRepository roleRepository,
+        UserFestivalRoleRepository userFestivalRoleRepository,
+        PerformanceRepository performanceRepository
     ) {
-        this.festivalRepository = festivalRepository;
-        this.userRepository = userRepository;
-        this.roleRepository = roleRepository;
-        this.userFestivalRoleRepository = userFestivalRoleRepository;
+    this.festivalRepository = festivalRepository;
+    this.userRepository = userRepository;
+    this.roleRepository = roleRepository;
+    this.userFestivalRoleRepository = userFestivalRoleRepository;
+    this.performanceRepository = performanceRepository;
     }
+
 
     @Override
     @Transactional
@@ -142,6 +148,37 @@ public class FestivalServiceImpl implements FestivalService {
     public void assignRole(Long organizerId, Long festivalId, Long userId, Long roleId) {
         assignRole(festivalId, new AssignRoleRequest(userId, roleId));
     }
+
+    @Override
+    @Transactional
+    public FestivalResponse moveToDecision(Long festivalId, Long userId) {
+
+    Festival festival = festivalRepository.findById(festivalId)
+            .orElseThrow(() -> new BusinessRuleException("Festival not found"));
+
+    if (!userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "PROGRAMMER")) {
+        throw new BusinessRuleException("Only PROGRAMMER can move festival to DECISION");
+    }
+
+    if (festival.getState() != FestivalState.FINAL_SUBMISSION) {
+        throw new BusinessRuleException("DECISION can start only after FINAL_SUBMISSION");
+    }
+
+    festival.setState(FestivalState.DECISION);
+    Festival savedFestival = festivalRepository.save(festival);
+
+    List<Performance> performances = performanceRepository.findByFestivalId(festivalId);
+    for (Performance p : performances) {
+        if (p.getState() == PerformanceState.APPROVED) {
+            p.setState(PerformanceState.REJECTED);
+            performanceRepository.save(p);
+        }
+    }
+
+    return toResponse(savedFestival);
+    }
+
+
 
     private FestivalResponse toResponse(Festival f) {
         return new FestivalResponse(
