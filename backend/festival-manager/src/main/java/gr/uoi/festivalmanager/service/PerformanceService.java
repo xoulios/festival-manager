@@ -5,7 +5,6 @@ import gr.uoi.festivalmanager.dto.FinalSubmitRequest;
 import gr.uoi.festivalmanager.dto.ReviewRequest;
 import java.util.List;
 
-
 public interface PerformanceService {
 
     Performance createPerformance(Long festivalId, Long artistId, Performance performance);
@@ -26,5 +25,8 @@ public interface PerformanceService {
 
     Performance finalSubmitPerformance(Long performanceId, Long artistId, FinalSubmitRequest request);
     
+    Performance assignHandler(Long performanceId, Long programmerId, Long staffId);
+
     List<Performance> searchPerformances(Long festivalId, String query);
+    
 }

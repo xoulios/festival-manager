@@ -10,7 +10,7 @@ import java.util.Optional;
 public interface UserFestivalRoleRepository extends JpaRepository<UserFestivalRole, UserFestivalRoleId> {
 
     boolean existsByIdUserIdAndIdFestivalId(Long userId, Long festivalId);
-
+    
     boolean existsByIdUserIdAndIdFestivalIdAndRole_Name(Long userId, Long festivalId, String roleName);
 
     @Query("select ufr.role.name from UserFestivalRole ufr where ufr.id.userId = :userId and ufr.id.festivalId = :festivalId")

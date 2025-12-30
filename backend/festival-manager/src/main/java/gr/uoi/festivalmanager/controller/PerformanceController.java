@@ -78,6 +78,16 @@ public ResponseEntity<Performance> review(
         return ResponseEntity.ok(performanceService.finalSubmitPerformance(id, userId, request));
     }
 
+    @PostMapping("/{id}/assign-handler")
+    public ResponseEntity<Performance> assignHandler(
+            @PathVariable Long id,
+            @RequestParam Long userId,   
+            @RequestParam Long staffId
+    ) {
+        return ResponseEntity.ok(performanceService.assignHandler(id, userId, staffId));
+    }
+
+
         @GetMapping("/search")
     public ResponseEntity<List<Performance>> search(
             @RequestParam Long festivalId,

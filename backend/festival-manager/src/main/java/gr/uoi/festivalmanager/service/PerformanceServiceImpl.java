@@ -323,6 +323,34 @@ public class PerformanceServiceImpl implements PerformanceService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional
+    public Performance assignHandler(Long performanceId, Long programmerId, Long staffId) {
+        Performance performance = performanceRepository.findById(performanceId)
+                .orElseThrow(() -> new BusinessRuleException("Performance not found"));
+
+        Festival festival = performance.getFestival();
+
+        if (festival.getState() != FestivalState.ASSIGNMENT) {
+            throw new BusinessRuleException("Handler assignment is allowed only in ASSIGNMENT state");
+        }
+
+        if (!userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(programmerId, festival.getId(), "PROGRAMMER")) {
+            throw new BusinessRuleException("Only PROGRAMMER can assign handlers");
+        }
+
+        if (!userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(staffId, festival.getId(), "STAFF")) {
+            throw new BusinessRuleException("Assigned handler must be STAFF in this festival");
+        }
+
+        User staff = userRepository.findById(staffId)
+                .orElseThrow(() -> new BusinessRuleException("User not found"));
+
+        performance.setHandler(staff);
+        return performanceRepository.save(performance);
+    }
+
+
     private List<String> tokenize(String query) {
         if (query == null || query.trim().isEmpty()) return List.of();
 
