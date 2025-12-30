@@ -16,13 +16,13 @@ import gr.uoi.festivalmanager.repository.UserFestivalRoleRepository;
 import gr.uoi.festivalmanager.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import gr.uoi.festivalmanager.dto.PerformanceViewDto;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
-
-
+import java.util.Optional;
 import java.time.LocalDateTime;
 
 @Service
@@ -281,6 +281,76 @@ public class PerformanceServiceImpl implements PerformanceService {
         p.setState(PerformanceState.FINAL_SUBMITTED);
 
         return performanceRepository.save(p);
+    }
+
+        @Override
+    @Transactional(readOnly = true)
+    public List<PerformanceViewDto> searchPerformancesView(Long festivalId, Long userId, String query) {
+
+        List<Performance> matches = searchPerformances(festivalId, query);
+
+        return matches.stream()
+                .map(p -> toViewDto(p, userId))
+                .filter(dto -> dto != null)
+                .toList();
+    }
+
+    private PerformanceViewDto toViewDto(Performance p, Long userId) {
+        Long festivalId = p.getFestival().getId();
+        boolean isProgrammer = hasRole(userId, festivalId, "PROGRAMMER") || hasRole(userId, festivalId, "ORGANIZER");
+        boolean isStaff = hasRole(userId, festivalId, "STAFF");
+        boolean isArtist = hasRole(userId, festivalId, "ARTIST") && p.getArtist() != null && userId.equals(p.getArtist().getId());
+        boolean isAssignedStaff = isStaff && p.getHandler() != null && p.getHandler().getId() != null && p.getHandler().getId().equals(userId);
+        boolean isVisitor = !isProgrammer && !isStaff && !isArtist;
+
+        if (isVisitor) {
+            switch (p.getState()) {
+                case SCHEDULED, FINAL_SUBMITTED -> { /* ok */ }
+                default -> { return null; }
+            }
+        }
+
+        if (isStaff && !isProgrammer && !isAssignedStaff) {
+            return null;
+        }
+
+        PerformanceViewDto dto = new PerformanceViewDto();
+        dto.setId(p.getId());
+        dto.setFestivalId(festivalId);
+        dto.setName(p.getName());
+        dto.setGenre(p.getGenre());
+        dto.setDescription(p.getDescription());
+
+        if (!isVisitor) {
+            dto.setState(p.getState() == null ? null : p.getState().name());
+        } else {
+            dto.setState(p.getState() == null ? null : p.getState().name());
+        }
+
+        if (isProgrammer || isAssignedStaff || isArtist) {
+            dto.setScheduledSlot(p.getScheduledSlot());
+        }
+
+        if (isProgrammer || isArtist || isAssignedStaff) {
+            dto.setPreferredRehearsalTimes(p.getPreferredRehearsalTimes());
+            dto.setPreferredTimeSlots(p.getPreferredTimeSlots());
+        }
+
+        if (isProgrammer || isAssignedStaff || isArtist) {
+            dto.setFinalSetlist(p.getFinalSetlist());
+            dto.setFinalRehearsalTimes(p.getFinalRehearsalTimes());
+            dto.setFinalTimeSlots(p.getFinalTimeSlots());
+        }
+
+        if (isProgrammer || isAssignedStaff) {
+            Optional<Review> last = reviewRepository.findTopByPerformanceIdOrderByIdDesc(p.getId());
+            if (last.isPresent()) {
+                dto.setLastReviewScore(last.get().getScore());
+                dto.setLastReviewComments(last.get().getComments());
+            }
+        }
+
+        return dto;
     }
 
 

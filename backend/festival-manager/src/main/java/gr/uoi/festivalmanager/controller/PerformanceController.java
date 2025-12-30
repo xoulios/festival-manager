@@ -9,6 +9,7 @@ import gr.uoi.festivalmanager.dto.ReviewRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import gr.uoi.festivalmanager.dto.PerformanceViewDto;
 import java.util.List;
 
 @RestController
@@ -94,6 +95,15 @@ public ResponseEntity<Performance> review(
             @RequestParam(name = "q", required = false) String q
     ) {
         return ResponseEntity.ok(performanceService.searchPerformances(festivalId, q));
+    }
+
+        @GetMapping("/search-view")
+    public ResponseEntity<List<PerformanceViewDto>> searchView(
+            @RequestParam Long festivalId,
+            @RequestParam Long userId,
+            @RequestParam(name = "q", required = false) String q
+    ) {
+        return ResponseEntity.ok(performanceService.searchPerformancesView(festivalId, userId, q));
     }
 
 }
