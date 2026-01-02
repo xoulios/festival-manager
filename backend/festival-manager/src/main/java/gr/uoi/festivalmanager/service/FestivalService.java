@@ -22,8 +22,11 @@ public interface FestivalService {
     FestivalResponse changeState(Long id, FestivalState newState);
 
     FestivalResponse moveToDecision(Long festivalId, Long userId);
+
+    FestivalResponse changeState(Long id, Long userId, FestivalState newState);
     
     void assignRole(Long festivalId, AssignRoleRequest request);
     void assignRole(Long festivalId, Long userId, Long roleId);
     void assignRole(Long organizerId, Long festivalId, Long userId, Long roleId);
+    void assignRole(Long festivalId, Long actorId, AssignRoleRequest request);
 }

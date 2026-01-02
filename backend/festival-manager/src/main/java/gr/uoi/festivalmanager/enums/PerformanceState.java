@@ -8,5 +8,7 @@ public enum PerformanceState {
     SCHEDULED,
     REJECTED,
     WITHDRAWN,
-    FINAL_SUBMITTED
+    FINAL_SUBMITTED,
+    PROVISIONALLY_SCHEDULED,
+    ASSIGNED
 }

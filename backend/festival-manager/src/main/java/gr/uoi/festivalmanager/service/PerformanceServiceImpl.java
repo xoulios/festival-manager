@@ -17,6 +17,7 @@ import gr.uoi.festivalmanager.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import gr.uoi.festivalmanager.dto.PerformanceViewDto;
+
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -121,8 +122,9 @@ public class PerformanceServiceImpl implements PerformanceService {
             throw new BusinessRuleException("Withdraw allowed only in CREATED state");
         }
 
-        p.setState(PerformanceState.WITHDRAWN);
-        return performanceRepository.save(p);
+        // CHANGED: σύμφωνα με εκφώνηση, στην απόσυρση (CREATED) γίνεται DELETE
+        performanceRepository.delete(p); // CHANGED
+        return p; // CHANGED: επιστρέφουμε το αντικείμενο όπως ήταν, απλά δεν υπάρχει πλέον στη βάση
     }
 
     @Override
@@ -134,6 +136,9 @@ public class PerformanceServiceImpl implements PerformanceService {
         Festival festival = requireFestival(p);
         requireRole(staffId, festival.getId(), "STAFF");
 
+        if (p.getHandler() == null || p.getHandler().getId() == null || !p.getHandler().getId().equals(staffId)) {
+        throw new BusinessRuleException("Only the assigned handler can review this performance");
+        }
         if (festival.getState() != FestivalState.REVIEW) {
             throw new BusinessRuleException("Review allowed only when festival is in REVIEW state");
         }
@@ -174,7 +179,10 @@ public class PerformanceServiceImpl implements PerformanceService {
 
         Festival festival = requireFestival(p);
         requireRole(staffId, festival.getId(), "STAFF");
-
+        
+        if (p.getHandler() == null || p.getHandler().getId() == null || !p.getHandler().getId().equals(staffId)) {
+        throw new BusinessRuleException("Only the assigned handler can approve this performance");
+        }
         if (festival.getState() != FestivalState.REVIEW) {
             throw new BusinessRuleException("Approval allowed only when festival is in REVIEW state");
         }
@@ -194,7 +202,10 @@ public class PerformanceServiceImpl implements PerformanceService {
 
         Festival festival = requireFestival(p);
         requireRole(staffId, festival.getId(), "STAFF");
-
+        
+        if (p.getHandler() == null || p.getHandler().getId() == null || !p.getHandler().getId().equals(staffId)) {
+        throw new BusinessRuleException("Only the assigned handler can reject this performance");
+        }
         if (festival.getState() != FestivalState.REVIEW) {
             throw new BusinessRuleException("Rejection allowed only when festival is in REVIEW state");
         }
@@ -244,7 +255,7 @@ public class PerformanceServiceImpl implements PerformanceService {
         }
 
         p.setScheduledSlot(scheduledSlot.trim());
-        p.setState(PerformanceState.SCHEDULED);
+
         return performanceRepository.save(p);
     }
 
@@ -264,9 +275,18 @@ public class PerformanceServiceImpl implements PerformanceService {
         if (festival.getState() != FestivalState.FINAL_SUBMISSION) {
             throw new BusinessRuleException("Final submit allowed only when festival is in FINAL_SUBMISSION state");
         }
-        if (p.getState() != PerformanceState.SCHEDULED) {
-            throw new BusinessRuleException("Only SCHEDULED performances can be final submitted");
+
+        // CHANGED: final submit γίνεται για APPROVED (που έχει tentative slot),
+        // όχι για SCHEDULED (το SCHEDULED είναι τελικό μετά το DECISION).
+        if (p.getState() != PerformanceState.APPROVED) { // CHANGED
+            throw new BusinessRuleException("Only APPROVED performances can be final submitted"); // CHANGED
         }
+
+        // CHANGED: πρέπει να υπάρχει tentative scheduled slot πριν το final submit
+        if (isBlank(p.getScheduledSlot())) { // CHANGED
+            throw new BusinessRuleException("Performance must have a scheduledSlot before final submission"); // CHANGED
+        }
+
         if (request == null) {
             throw new BusinessRuleException("Final submit payload is required");
         }
@@ -283,7 +303,7 @@ public class PerformanceServiceImpl implements PerformanceService {
         return performanceRepository.save(p);
     }
 
-        @Override
+    @Override
     @Transactional(readOnly = true)
     public List<PerformanceViewDto> searchPerformancesView(Long festivalId, Long userId, String query) {
 
@@ -305,7 +325,8 @@ public class PerformanceServiceImpl implements PerformanceService {
 
         if (isVisitor) {
             switch (p.getState()) {
-                case SCHEDULED, FINAL_SUBMITTED -> { /* ok */ }
+                // CHANGED: visitor πρέπει να βλέπει ΜΟΝΟ τελικά scheduled
+                case SCHEDULED -> { /* ok */ } // CHANGED
                 default -> { return null; }
             }
         }
@@ -369,14 +390,37 @@ public class PerformanceServiceImpl implements PerformanceService {
     }
 
     private boolean hasRole(Long userId, Long festivalId, String roleName) {
+        if (userId == null || festivalId == null || roleName == null) return false;
+
+        if ("PROGRAMMER".equalsIgnoreCase(roleName)) {
+            return userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "PROGRAMMER")
+                    || userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "ORGANIZER");
+        }
+
+        if ("SUBMITTER".equalsIgnoreCase(roleName)) {
+            return userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "SUBMITTER")
+                    || userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "ARTIST");
+        }
+
+        if ("ORGANIZER".equalsIgnoreCase(roleName)) {
+            return userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "ORGANIZER")
+                    || userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "PROGRAMMER");
+        }
+
+        if ("ARTIST".equalsIgnoreCase(roleName)) {
+            return userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "ARTIST")
+                    || userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "SUBMITTER");
+        }
+
         return userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, roleName);
     }
+
 
     private boolean isBlank(String s) {
         return s == null || s.trim().isEmpty();
     }
 
-        @Override
+    @Override
     @Transactional(readOnly = true)
     public List<Performance> searchPerformances(Long festivalId, String query) {
         List<Performance> all = performanceRepository.findByFestivalId(festivalId);
@@ -405,12 +449,15 @@ public class PerformanceServiceImpl implements PerformanceService {
             throw new BusinessRuleException("Handler assignment is allowed only in ASSIGNMENT state");
         }
 
-        if (!userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(programmerId, festival.getId(), "PROGRAMMER")) {
+        if (!hasRole(programmerId, festival.getId(), "PROGRAMMER")) {
             throw new BusinessRuleException("Only PROGRAMMER can assign handlers");
         }
 
         if (!userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(staffId, festival.getId(), "STAFF")) {
             throw new BusinessRuleException("Assigned handler must be STAFF in this festival");
+        }
+        if (performance.getHandler() != null) {
+        throw new BusinessRuleException("Handler is already assigned for this performance");
         }
 
         User staff = userRepository.findById(staffId)
@@ -423,48 +470,66 @@ public class PerformanceServiceImpl implements PerformanceService {
     @Override
     @Transactional
     public Performance finalAccept(Long performanceId, Long programmerId) {
-    Performance p = performanceRepository.findById(performanceId)
-            .orElseThrow(() -> new BusinessRuleException("Performance not found"));
+        Performance p = performanceRepository.findById(performanceId)
+                .orElseThrow(() -> new BusinessRuleException("Performance not found"));
 
-    Festival festival = p.getFestival();
+        Festival festival = p.getFestival();
 
-    if (festival.getState() != FestivalState.DECISION) {
-        throw new BusinessRuleException("Final decisions are allowed only in DECISION state");
-    }
+        if (festival.getState() != FestivalState.DECISION) {
+            throw new BusinessRuleException("Final decisions are allowed only in DECISION state");
+        }
 
-    if (!userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(programmerId, festival.getId(), "PROGRAMMER")) {
-        throw new BusinessRuleException("Only PROGRAMMER can make final decisions");
-    }
+        if (!userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(programmerId, festival.getId(), "PROGRAMMER")) {
+            throw new BusinessRuleException("Only PROGRAMMER can make final decisions");
+        }
 
-    if (p.getState() != PerformanceState.FINAL_SUBMITTED) {
-        throw new BusinessRuleException("Only FINAL_SUBMITTED performances can be accepted");
-    }
+        if (p.getState() != PerformanceState.FINAL_SUBMITTED) {
+            throw new BusinessRuleException("Only FINAL_SUBMITTED performances can be accepted");
+        }
 
-    return p;
+        // CHANGED: bug fix - πρέπει να γίνει SCHEDULED και save
+        p.setState(PerformanceState.SCHEDULED); // CHANGED
+        return performanceRepository.save(p);   // CHANGED
     }
 
     @Override
     @Transactional
     public Performance finalReject(Long performanceId, Long programmerId, String reason) {
-    Performance p = performanceRepository.findById(performanceId)
-            .orElseThrow(() -> new BusinessRuleException("Performance not found"));
+        Performance p = performanceRepository.findById(performanceId)
+                .orElseThrow(() -> new BusinessRuleException("Performance not found"));
 
-    Festival festival = p.getFestival();
+        Festival festival = p.getFestival();
 
-    if (festival.getState() != FestivalState.DECISION) {
-        throw new BusinessRuleException("Final decisions are allowed only in DECISION state");
+        if (festival.getState() != FestivalState.DECISION) {
+            throw new BusinessRuleException("Final decisions are allowed only in DECISION state");
+        }
+
+        if (!userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(programmerId, festival.getId(), "PROGRAMMER")) {
+            throw new BusinessRuleException("Only PROGRAMMER can make final decisions");
+        }
+
+        if (reason == null || reason.trim().isEmpty()) { 
+            throw new BusinessRuleException("Rejection reason is required"); 
+        }
+        if (p.getState() != PerformanceState.FINAL_SUBMITTED) { 
+            throw new BusinessRuleException("Only FINAL_SUBMITTED performances can be rejected"); // CHANGED
+        }
+
+        User reviewer = userRepository.findById(programmerId) 
+                .orElseThrow(() -> new BusinessRuleException("Reviewer not found"));
+
+        Review review = new Review(); 
+        review.setPerformance(p); 
+        review.setReviewer(reviewer); 
+        review.setScore(0); 
+        review.setComments("FINAL REJECT: " + reason.trim()); 
+        reviewRepository.save(review); 
+
+        p.setState(PerformanceState.REJECTED);
+        performanceRepository.save(p);
+
+        return p;
     }
-
-    if (!userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(programmerId, festival.getId(), "PROGRAMMER")) {
-        throw new BusinessRuleException("Only PROGRAMMER can make final decisions");
-    }
-
-    p.setState(PerformanceState.REJECTED);
-    performanceRepository.save(p);
-
-    return p;
-    }
-
 
     private List<String> tokenize(String query) {
         if (query == null || query.trim().isEmpty()) return List.of();
@@ -480,8 +545,8 @@ public class PerformanceServiceImpl implements PerformanceService {
 
         String haystack = (
                 safeLower(p.getName()) + " " +
-                safeLower(p.getDescription()) + " " +
-                safeLower(p.getGenre())
+                        safeLower(p.getDescription()) + " " +
+                        safeLower(p.getGenre())
         );
 
         for (String t : tokens) {

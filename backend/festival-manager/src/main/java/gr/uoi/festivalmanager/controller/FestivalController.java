@@ -30,16 +30,12 @@ public class FestivalController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<FestivalResponse> updateFestival(
-            @PathVariable Long id,
-            @Valid @RequestBody FestivalUpdateRequest request
-    ) {
-        FestivalResponse updated = festivalService.updateFestival(id, request);
-        return ResponseEntity.ok(updated);
+    public ResponseEntity<FestivalResponse> updateFestival(@PathVariable Long id, @Valid @RequestBody FestivalUpdateRequest request) {
+        return ResponseEntity.ok(festivalService.updateFestival(id, request));
     }
 
     @GetMapping
-    public ResponseEntity<List<FestivalResponse>> getAllFestivals() {
+    public ResponseEntity<List<FestivalResponse>> listFestivals() {
         return ResponseEntity.ok(festivalService.listFestivals());
     }
 
@@ -48,48 +44,53 @@ public class FestivalController {
         return ResponseEntity.ok(festivalService.getFestival(id));
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteFestival(@PathVariable Long id) {
+        festivalService.deleteFestival(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @PatchMapping("/{id}/state")
     public ResponseEntity<FestivalResponse> changeState(
             @PathVariable Long id,
-            @RequestParam("state") String state
+            @RequestParam("state") String state,
+            @RequestParam(value = "userId", required = false) Long userId
     ) {
         FestivalState newState = FestivalState.valueOf(state.trim().toUpperCase());
-        FestivalResponse updated = festivalService.changeState(id, newState);
+
+        FestivalResponse updated = (userId == null)
+                ? festivalService.changeState(id, newState)
+                : festivalService.changeState(id, userId, newState);
+
         return ResponseEntity.ok(updated);
     }
 
     @PostMapping("/{festivalId}/roles")
     public ResponseEntity<Void> assignRole(
             @PathVariable Long festivalId,
+            @RequestParam("userId") Long actorId,
             @Valid @RequestBody AssignRoleRequest request
     ) {
-        festivalService.assignRole(festivalId, request);
+        festivalService.assignRole(festivalId, actorId, request);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/decision")
+    public ResponseEntity<FestivalResponse> moveToDecision(
+            @PathVariable Long id,
+            @RequestParam Long userId
+    ) {
+        return ResponseEntity.ok(festivalService.moveToDecision(id, userId));
     }
 
     @PostMapping("/{festivalId}/assign-role")
     public ResponseEntity<Void> assignRoleLegacy(
         @PathVariable Long festivalId,
-        @RequestParam("userId") Long userId,
-        @RequestParam("roleId") Long roleId
+        @RequestParam Long userId,
+        @RequestParam Long roleId
     ) {
     festivalService.assignRole(festivalId, userId, roleId);
     return ResponseEntity.ok().build();
     }
 
-        @PostMapping("/{id}/decision")
-    public ResponseEntity<FestivalResponse> moveToDecision(
-        @PathVariable Long id,
-        @RequestParam Long userId
-    ) {
-        return ResponseEntity.ok(festivalService.moveToDecision(id, userId));
-    }
-
-
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteFestival(@PathVariable Long id) {
-        festivalService.deleteFestival(id);
-        return ResponseEntity.noContent().build();
-    }
 }
