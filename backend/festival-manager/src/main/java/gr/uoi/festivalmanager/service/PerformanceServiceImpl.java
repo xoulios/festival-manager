@@ -136,6 +136,9 @@ public class PerformanceServiceImpl implements PerformanceService {
         Festival festival = requireFestival(p);
         requireRole(staffId, festival.getId(), "STAFF");
 
+        if (p.getHandler() == null || p.getHandler().getId() == null || !p.getHandler().getId().equals(staffId)) {
+        throw new BusinessRuleException("Only the assigned handler can review this performance");
+        }
         if (festival.getState() != FestivalState.REVIEW) {
             throw new BusinessRuleException("Review allowed only when festival is in REVIEW state");
         }
@@ -176,7 +179,10 @@ public class PerformanceServiceImpl implements PerformanceService {
 
         Festival festival = requireFestival(p);
         requireRole(staffId, festival.getId(), "STAFF");
-
+        
+        if (p.getHandler() == null || p.getHandler().getId() == null || !p.getHandler().getId().equals(staffId)) {
+        throw new BusinessRuleException("Only the assigned handler can approve this performance");
+        }
         if (festival.getState() != FestivalState.REVIEW) {
             throw new BusinessRuleException("Approval allowed only when festival is in REVIEW state");
         }
@@ -196,7 +202,10 @@ public class PerformanceServiceImpl implements PerformanceService {
 
         Festival festival = requireFestival(p);
         requireRole(staffId, festival.getId(), "STAFF");
-
+        
+        if (p.getHandler() == null || p.getHandler().getId() == null || !p.getHandler().getId().equals(staffId)) {
+        throw new BusinessRuleException("Only the assigned handler can reject this performance");
+        }
         if (festival.getState() != FestivalState.REVIEW) {
             throw new BusinessRuleException("Rejection allowed only when festival is in REVIEW state");
         }
@@ -247,9 +256,6 @@ public class PerformanceServiceImpl implements PerformanceService {
 
         p.setScheduledSlot(scheduledSlot.trim());
 
-        // CHANGED: δεν κάνουμε SCHEDULED εδώ γιατί το SCHEDULED πρέπει να είναι τελικό (DECISION).
-        // Το κρατάμε APPROVED (approved + tentative schedule slot).
-        // p.setState(PerformanceState.SCHEDULED); // CHANGED (removed action, δεν αλλάζουμε state)
         return performanceRepository.save(p);
     }
 
@@ -450,6 +456,9 @@ public class PerformanceServiceImpl implements PerformanceService {
         if (!userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(staffId, festival.getId(), "STAFF")) {
             throw new BusinessRuleException("Assigned handler must be STAFF in this festival");
         }
+        if (performance.getHandler() != null) {
+        throw new BusinessRuleException("Handler is already assigned for this performance");
+        }
 
         User staff = userRepository.findById(staffId)
                 .orElseThrow(() -> new BusinessRuleException("User not found"));
@@ -521,7 +530,6 @@ public class PerformanceServiceImpl implements PerformanceService {
 
         return p;
     }
-
 
     private List<String> tokenize(String query) {
         if (query == null || query.trim().isEmpty()) return List.of();
