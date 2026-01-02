@@ -225,9 +225,9 @@ public class FestivalServiceImpl implements FestivalService {
 
         List<Performance> performances = performanceRepository.findByFestivalId(festivalId);
         for (Performance p : performances) {
-            if (p.getState() == PerformanceState.APPROVED) {
-                p.setState(PerformanceState.REJECTED);
-                performanceRepository.save(p);
+            if (p.getState() == PerformanceState.APPROVED) { 
+                p.setState(PerformanceState.REJECTED); 
+                performanceRepository.save(p); 
             }
         }
 
@@ -250,13 +250,13 @@ public class FestivalServiceImpl implements FestivalService {
     }
 
     private FestivalResponse toResponse(Festival f) {
-    return new FestivalResponse(
-            f.getId(),
-            f.getTitle(),
-            f.getDescription(),
-            f.getStartDate(),
-            f.getEndDate(),
-            f.getState() == null ? null : f.getState().name()
-    );
+        return new FestivalResponse(
+                f.getId(),
+                f.getTitle(),
+                f.getDescription(),
+                f.getStartDate(),
+                f.getEndDate(),
+                f.getState() == null ? null : f.getState().name()
+        );
     }
 }

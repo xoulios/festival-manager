@@ -2,7 +2,6 @@ package gr.uoi.festivalmanager.entity;
 
 import gr.uoi.festivalmanager.enums.PerformanceState;
 import jakarta.persistence.*;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -80,6 +79,8 @@ public class Performance {
     @Column(name = "final_submitted_at")
     private LocalDateTime finalSubmittedAt;
 
+    private String rejectionReason;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PerformanceState state = PerformanceState.CREATED;
@@ -150,4 +151,13 @@ public class Performance {
 
     public List<Review> getReviews() { return reviews; }
     public void setReviews(List<Review> reviews) { this.reviews = reviews; }
+
+    public String getRejectionReason() {
+    return rejectionReason;
+    }
+
+    public void setRejectionReason(String rejectionReason) {
+    this.rejectionReason = rejectionReason;
+    }
+
 }
