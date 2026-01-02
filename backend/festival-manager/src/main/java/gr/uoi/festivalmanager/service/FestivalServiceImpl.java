@@ -152,13 +152,17 @@ public class FestivalServiceImpl implements FestivalService {
     @Override
     @Transactional
     public FestivalResponse moveToDecision(Long festivalId, Long userId) {
-
     Festival festival = festivalRepository.findById(festivalId)
             .orElseThrow(() -> new BusinessRuleException("Festival not found"));
 
-    if (!userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "PROGRAMMER")) {
-        throw new BusinessRuleException("Only PROGRAMMER can move festival to DECISION");
+    boolean isProgrammer =
+        userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "PROGRAMMER")
+        || userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "ORGANIZER");
+
+    if (!isProgrammer) {
+    throw new BusinessRuleException("Only PROGRAMMER can move festival to DECISION");
     }
+
 
     if (festival.getState() != FestivalState.FINAL_SUBMISSION) {
         throw new BusinessRuleException("DECISION can start only after FINAL_SUBMISSION");

@@ -368,9 +368,32 @@ public class PerformanceServiceImpl implements PerformanceService {
         }
     }
 
-    private boolean hasRole(Long userId, Long festivalId, String roleName) {
-        return userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, roleName);
+   private boolean hasRole(Long userId, Long festivalId, String roleName) {
+    if (userId == null || festivalId == null || roleName == null) return false;
+
+    if ("PROGRAMMER".equalsIgnoreCase(roleName)) {
+        return userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "PROGRAMMER")
+                || userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "ORGANIZER");
     }
+
+    if ("SUBMITTER".equalsIgnoreCase(roleName)) {
+        return userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "SUBMITTER")
+                || userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "ARTIST");
+    }
+
+    if ("ORGANIZER".equalsIgnoreCase(roleName)) {
+        return userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "ORGANIZER")
+                || userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "PROGRAMMER");
+    }
+
+    if ("ARTIST".equalsIgnoreCase(roleName)) {
+        return userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "ARTIST")
+                || userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "SUBMITTER");
+    }
+
+    return userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, roleName);
+}
+
 
     private boolean isBlank(String s) {
         return s == null || s.trim().isEmpty();
