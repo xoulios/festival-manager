@@ -13,5 +13,5 @@ import lombok.Setter;
 public class Role extends BaseEntity {
 
     @Column(nullable = false, unique = true)
-    private String name; // ORGANIZER, ARTIST, STAFF
+    private String name;
 }
