@@ -122,9 +122,8 @@ public class PerformanceServiceImpl implements PerformanceService {
             throw new BusinessRuleException("Withdraw allowed only in CREATED state");
         }
 
-        // CHANGED: σύμφωνα με εκφώνηση, στην απόσυρση (CREATED) γίνεται DELETE
-        performanceRepository.delete(p); // CHANGED
-        return p; // CHANGED: επιστρέφουμε το αντικείμενο όπως ήταν, απλά δεν υπάρχει πλέον στη βάση
+        performanceRepository.delete(p); 
+        return p;
     }
 
     @Override
@@ -276,14 +275,11 @@ public class PerformanceServiceImpl implements PerformanceService {
             throw new BusinessRuleException("Final submit allowed only when festival is in FINAL_SUBMISSION state");
         }
 
-        // CHANGED: final submit γίνεται για APPROVED (που έχει tentative slot),
-        // όχι για SCHEDULED (το SCHEDULED είναι τελικό μετά το DECISION).
-        if (p.getState() != PerformanceState.APPROVED) { // CHANGED
+        if (p.getState() != PerformanceState.APPROVED) { 
             throw new BusinessRuleException("Only APPROVED performances can be final submitted"); // CHANGED
         }
 
-        // CHANGED: πρέπει να υπάρχει tentative scheduled slot πριν το final submit
-        if (isBlank(p.getScheduledSlot())) { // CHANGED
+        if (isBlank(p.getScheduledSlot())) {
             throw new BusinessRuleException("Performance must have a scheduledSlot before final submission"); // CHANGED
         }
 
@@ -325,8 +321,7 @@ public class PerformanceServiceImpl implements PerformanceService {
 
         if (isVisitor) {
             switch (p.getState()) {
-                // CHANGED: visitor πρέπει να βλέπει ΜΟΝΟ τελικά scheduled
-                case SCHEDULED -> { /* ok */ } // CHANGED
+                case SCHEDULED -> { /* ok */ }
                 default -> { return null; }
             }
         }
@@ -487,9 +482,8 @@ public class PerformanceServiceImpl implements PerformanceService {
             throw new BusinessRuleException("Only FINAL_SUBMITTED performances can be accepted");
         }
 
-        // CHANGED: bug fix - πρέπει να γίνει SCHEDULED και save
-        p.setState(PerformanceState.SCHEDULED); // CHANGED
-        return performanceRepository.save(p);   // CHANGED
+        p.setState(PerformanceState.SCHEDULED);
+        return performanceRepository.save(p);   
     }
 
     @Override
