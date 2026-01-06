@@ -5,13 +5,13 @@ INSERT INTO roles (id, name, created_at, updated_at) VALUES
 
 INSERT INTO users (id, username, email, password, enabled, created_at, updated_at) VALUES
 (1, 'programmer1', 'programmer1@example.com',
-'$2b$10$5JwCw1C88xwVDBkDRN6pXuhYbNq8o3r2Yh3k7g3a1xB1q6xqTqg7K', TRUE,
+'$2b$10$hrhlad0XEOrLOrPUhvfsOutI/cYKV5DYEeg8MwZadrjYoV0GEv.DC', TRUE,
 CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 (2, 'staff1',      'staff1@example.com',
-'$2b$10$5JwCw1C88xwVDBkDRN6pXuhYbNq8o3r2Yh3k7g3a1xB1q6xqTqg7K', TRUE,
+'$2b$10$hrhlad0XEOrLOrPUhvfsOutI/cYKV5DYEeg8MwZadrjYoV0GEv.DC', TRUE,
 CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 (3, 'artist1',     'artist1@example.com',
-'$2b$10$5JwCw1C88xwVDBkDRN6pXuhYbNq8o3r2Yh3k7g3a1xB1q6xqTqg7K', TRUE,
+'$2b$10$hrhlad0XEOrLOrPUhvfsOutI/cYKV5DYEeg8MwZadrjYoV0GEv.DC', TRUE,
 CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 INSERT INTO festivals (id, title, description, start_date, end_date, state) VALUES
