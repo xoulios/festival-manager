@@ -90,6 +90,11 @@ export default function Dashboard() {
                 Οι Υποβολές μου
               </Link>
             )}
+            {user?.role === "STAFF" && (
+              <Link to="/my-assignments" className="btn-secondary">
+                Οι Αναθέσεις μου
+              </Link>
+            )}
 
             <Link to="/profile" className="btn-ghost">
               Προφίλ

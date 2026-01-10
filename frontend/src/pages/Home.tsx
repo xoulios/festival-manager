@@ -25,6 +25,9 @@ const Home: React.FC = () => {
               <Link className="home-nav-link home-nav-primary" to="/login">
                 Σύνδεση
               </Link>
+              <Link className="home-nav-link" to="/schedule">
+                Timetable
+              </Link>
             </nav>
           </div>
         </div>
@@ -69,7 +72,6 @@ const Home: React.FC = () => {
 
           {/* Side */}
           <aside className="home-card">
-            <h2 className="home-side-title">Γρήγορη εκκίνηση</h2>
             <p className="home-side-text">
               Αν έχεις λογαριασμό, κάνε σύνδεση. Διαφορετικά μπορείς να δεις τα ανακοινωμένα προγράμματα ως επισκέπτης.
             </p>
@@ -81,13 +83,6 @@ const Home: React.FC = () => {
               <Link to="/programs" className="btn-secondary">
                 Δες Προγράμματα
               </Link>
-            </div>
-
-            <div className="home-tip">
-              <div className="home-tip-k">Tip</div>
-              <div className="home-tip-v">
-                Στο login μπορείς να πατήσεις <b>Enter</b>.
-              </div>
             </div>
           </aside>
         </div>

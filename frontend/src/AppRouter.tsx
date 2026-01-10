@@ -12,6 +12,9 @@ import ProgramDetailsPage from "./pages/ProgramDetailsPage";
 import ProgramsPage from "./pages/ProgramsPage";
 import ScreeningsPage from "./pages/ScreeningsPage";
 import SubmissionsPage from "./pages/SubmissionsPage";
+import CreateProgramPage from "./pages/CreateProgramPage";
+import MyAssignmentsPage from "./pages/MyAssignmentsPage";
+import SchedulePage from "./pages/SchedulePage";
 
 function UnauthorizedPage() {
   return (
@@ -106,6 +109,32 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/programs/manage/create"
+          element={
+            <ProtectedRoute requiredRoles={["PROGRAMMER"]}>
+              <MainLayout>
+                <CreateProgramPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Public timetable */}
+        <Route path="/schedule" element={<SchedulePage />} />
+
+        <Route
+          path="/my-assignments"
+          element={
+             <ProtectedRoute requiredRoles={["STAFF"]}>
+                 <MainLayout>
+                  <MyAssignmentsPage />
+                 </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+
 
         {/* Default redirects */}
         <Route path="/app" element={<Navigate to="/" replace />} />

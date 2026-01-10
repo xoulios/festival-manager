@@ -148,9 +148,7 @@ export default function SubmissionsPage() {
     setLoading(true);
     setError(null);
     try {
-      const url = `/api/performances/search-view?festivalId=${festivalId}&userId=${user.userId}${
-        q.trim() ? `&q=${encodeURIComponent(q.trim())}` : ""
-      }`;
+      const url = `/api/performances/search-view?festivalId=${festivalId}...`
       const data = await apiGet<PerformanceViewDto[]>(url, authHeader);
       setItems(Array.isArray(data) ? data : []);
     } catch (e) {
@@ -270,7 +268,7 @@ export default function SubmissionsPage() {
     setCreating(true);
     try {
       await apiJson(
-        `/api/performances?festivalId=${festivalId}&artistId=${user.userId}`,
+        `/api/performances?festivalId=${festivalId}`,
         "POST",
         payload,
         authHeader

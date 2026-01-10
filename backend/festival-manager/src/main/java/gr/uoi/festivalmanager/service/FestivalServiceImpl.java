@@ -48,16 +48,36 @@ public class FestivalServiceImpl implements FestivalService {
     @Override
     @Transactional
     public FestivalResponse createFestival(FestivalCreateRequest request) {
-        Festival festival = new Festival();
-        festival.setTitle(request.getTitle());
-        festival.setDescription(request.getDescription());
-        festival.setStartDate(request.getStartDate());
-        festival.setEndDate(request.getEndDate());
-        festival.setState(FestivalState.CREATED);
-
-        Festival saved = festivalRepository.save(festival);
-        return toResponse(saved);
+    return createFestival(request, null);
     }
+
+    @Override
+    @Transactional
+    public FestivalResponse createFestival(FestivalCreateRequest request, Long creatorUserId) {
+    Festival festival = new Festival();
+    festival.setTitle(request.getTitle());
+    festival.setDescription(request.getDescription());
+    festival.setStartDate(request.getStartDate());
+    festival.setEndDate(request.getEndDate());
+    festival.setState(FestivalState.CREATED);
+
+    Festival saved = festivalRepository.save(festival);
+    if (creatorUserId != null) {
+        User creator = userRepository.findById(creatorUserId)
+                .orElseThrow(() -> new BusinessRuleException("User not found"));
+
+        Role programmerRole = roleRepository.findByName("PROGRAMMER")
+                .orElseThrow(() -> new BusinessRuleException("Role PROGRAMMER not found"));
+
+        boolean already = userFestivalRoleRepository.existsByIdUserIdAndIdFestivalId(creatorUserId, saved.getId());
+        if (!already) {
+            userFestivalRoleRepository.save(new UserFestivalRole(creator, saved, programmerRole));
+        }
+    }
+
+    return toResponse(saved);
+}
+
 
     @Override
     @Transactional
