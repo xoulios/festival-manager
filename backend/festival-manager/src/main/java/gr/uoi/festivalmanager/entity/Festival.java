@@ -8,13 +8,13 @@ import java.util.List;
 
 @Entity
 @Table(name = "festivals")
-public class Festival {
+public class Festival extends BaseEntity{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String title;
 
     @Column(length = 2000)

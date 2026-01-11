@@ -1,11 +1,22 @@
 package gr.uoi.festivalmanager.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
 import java.time.LocalDate;
 
 public class FestivalCreateRequest {
+
+    @NotBlank(message = "Title is required")
     private String title;
+
+    @NotBlank(message = "Description is required")
     private String description;
+
+    @NotNull(message = "Start date is required")
     private LocalDate startDate;
+
+    @NotNull(message = "End date is required")
     private LocalDate endDate;
 
     public FestivalCreateRequest() {}
