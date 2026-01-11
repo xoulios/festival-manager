@@ -1,15 +1,17 @@
 package gr.uoi.festivalmanager.controller;
 
-import gr.uoi.festivalmanager.dto.FestivalRoleDto;
-import gr.uoi.festivalmanager.dto.MeResponse;
+import gr.uoi.festivalmanager.dto.AuthMeResponse;
 import gr.uoi.festivalmanager.entity.UserFestivalRole;
 import gr.uoi.festivalmanager.repository.UserFestivalRoleRepository;
 import gr.uoi.festivalmanager.security.SecurityUser;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -23,38 +25,38 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public MeResponse me(@AuthenticationPrincipal SecurityUser principal) {
-        Long userId = principal.getId();
-
-        List<UserFestivalRole> roles = userFestivalRoleRepository.findAllByUserId(userId);
-        List<FestivalRoleDto> festivalRoles = roles.stream()
-                .map(ufr -> new FestivalRoleDto(
-                        ufr.getFestival().getId(),
-                        ufr.getRole() == null ? null : ufr.getRole().getName()
-                ))
-                .toList();
-
-        String effective = computeEffectiveRole(festivalRoles);
-
-        return new MeResponse(userId, principal.getUsername(), effective, festivalRoles);
+    public ResponseEntity<AuthMeResponse> me(@AuthenticationPrincipal SecurityUser principal) {
+    if (principal == null) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
-    private String computeEffectiveRole(List<FestivalRoleDto> festivalRoles) {
-        boolean hasProgrammer = false;
-        boolean hasStaff = false;
-        boolean hasSubmitter = false;
+    List<AuthMeResponse.FestivalRole> festivalRoles =
+            userFestivalRoleRepository.findFestivalRolesForUserId(principal.getId());
 
-        for (FestivalRoleDto r : festivalRoles) {
-            if (r == null || r.getRole() == null) continue;
-            String name = r.getRole().trim().toUpperCase();
-            if (name.contains("PROGRAMMER") || name.contains("ORGANIZER")) hasProgrammer = true;
-            else if (name.contains("STAFF")) hasStaff = true;
-            else if (name.contains("SUBMITTER") || name.contains("ARTIST")) hasSubmitter = true;
+    String effectiveRole = computeEffectiveRole(festivalRoles);
+
+    AuthMeResponse body = new AuthMeResponse(
+            principal.getId(),
+            principal.getUsername(),
+            effectiveRole,
+            festivalRoles
+    );
+
+    return ResponseEntity.ok(body);
+    }
+
+
+    private String computeEffectiveRole(List<AuthMeResponse.FestivalRole> roles) {
+        List<String> priority = List.of("ORGANIZER", "STAFF", "PROGRAMMER", "ARTIST", "SUBMITTER");
+
+        for (String p : priority) {
+            for (AuthMeResponse.FestivalRole r : roles) {
+                if (p.equalsIgnoreCase(r.getRole())) {
+                    return p;
+                }
+            }
         }
 
-        if (hasProgrammer) return "PROGRAMMER";
-        if (hasStaff) return "STAFF";
-        if (hasSubmitter) return "SUBMITTER";
-        return "VISITOR";
+        return roles.isEmpty() ? "NONE" : roles.get(0).getRole();
     }
 }

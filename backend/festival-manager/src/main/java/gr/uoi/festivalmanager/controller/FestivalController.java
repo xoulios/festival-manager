@@ -36,8 +36,12 @@ public class FestivalController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<FestivalResponse> updateFestival(@PathVariable Long id, @Valid @RequestBody FestivalUpdateRequest request) {
-        return ResponseEntity.ok(festivalService.updateFestival(id, request));
+    public ResponseEntity<FestivalResponse> updateFestival(
+        @PathVariable Long id,
+        @AuthenticationPrincipal SecurityUser principal,
+        @Valid @RequestBody FestivalUpdateRequest request
+    ) {
+    return ResponseEntity.ok(festivalService.updateFestival(id, principal.getId(), request));
     }
 
     @GetMapping
@@ -51,10 +55,14 @@ public class FestivalController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteFestival(@PathVariable Long id) {
-        festivalService.deleteFestival(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Void> deleteFestival(
+        @PathVariable Long id,
+        @AuthenticationPrincipal SecurityUser principal
+    ) {
+    festivalService.deleteFestival(id, principal.getId());
+    return ResponseEntity.noContent().build();
     }
+
 
     @PatchMapping("/{id}/state")
     public ResponseEntity<FestivalResponse> changeState(

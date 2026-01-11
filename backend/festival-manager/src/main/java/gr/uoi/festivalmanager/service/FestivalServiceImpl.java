@@ -89,21 +89,72 @@ public class FestivalServiceImpl implements FestivalService {
     return toResponse(saved);
 }
 
+    @Transactional
+    public FestivalResponse updateFestival(Long id, FestivalUpdateRequest request) {
+    return updateFestival(id, null, request);
+    }
 
     @Override
     @Transactional
-    public FestivalResponse updateFestival(Long id, FestivalUpdateRequest request) {
-        Festival festival = festivalRepository.findById(id)
-                .orElseThrow(() -> new BusinessRuleException("Festival not found"));
+    public FestivalResponse updateFestival(Long id, Long actorUserId, FestivalUpdateRequest request) {
+    Festival festival = festivalRepository.findById(id)
+            .orElseThrow(() -> new BusinessRuleException("Festival not found"));
 
-        festival.setTitle(request.getTitle());
-        festival.setDescription(request.getDescription());
-        festival.setStartDate(request.getStartDate());
-        festival.setEndDate(request.getEndDate());
+    requireProgrammer(festival.getId(), actorUserId
+);
 
-        Festival saved = festivalRepository.save(festival);
-        return toResponse(saved);
+    if (festival.getState() == FestivalState.ANNOUNCED || festival.getState() == FestivalState.COMPLETE) {
+        throw new BusinessRuleException("Festival cannot be updated after ANNOUNCED");
     }
+
+    if (request.getTitle() != null) {
+        String newTitle = request.getTitle().trim();
+        if (newTitle.isBlank()) throw new BusinessRuleException("Title is required");
+
+        boolean exists = festivalRepository.existsByTitleIgnoreCase(newTitle);
+        if (exists && !newTitle.equalsIgnoreCase(festival.getTitle())) {
+            throw new BusinessRuleException("Festival title must be unique");
+        }
+        festival.setTitle(newTitle);
+    }
+
+    if (request.getDescription() != null) {
+        String desc = request.getDescription().trim();
+        if (desc.isBlank()) throw new BusinessRuleException("Description is required");
+        festival.setDescription(desc);
+    }
+
+    if (request.getStartDate() != null) {
+        festival.setStartDate(request.getStartDate());
+    }
+    if (request.getEndDate() != null) {
+        festival.setEndDate(request.getEndDate());
+    }
+
+    if (festival.getStartDate() != null && festival.getEndDate() != null
+            && festival.getStartDate().isAfter(festival.getEndDate())) {
+        throw new BusinessRuleException("Start date must be before or equal to end date");
+    }
+
+    Festival saved = festivalRepository.save(festival);
+    return toResponse(saved);
+    }
+   
+    @Override
+    @Transactional
+    public void deleteFestival(Long id, Long actorUserId) {
+    Festival festival = festivalRepository.findById(id)
+            .orElseThrow(() -> new BusinessRuleException("Festival not found"));
+
+    requireProgrammer(id, actorUserId);
+
+    if (festival.getState() != FestivalState.CREATED) {
+        throw new BusinessRuleException("Festival can be deleted only in CREATED state");
+    }
+
+    festivalRepository.delete(festival);
+    }
+
 
     @Override
     @Transactional(readOnly = true)
@@ -119,14 +170,11 @@ public class FestivalServiceImpl implements FestivalService {
         return toResponse(festival);
     }
 
-    @Override
     @Transactional
-    public void deleteFestival(Long id) {
-        if (!festivalRepository.existsById(id)) {
-            throw new BusinessRuleException("Festival not found");
+        public void deleteFestival(Long id) {
+          deleteFestival(id, null);
         }
-        festivalRepository.deleteById(id);
-    }
+
 
 
     @Override
@@ -183,7 +231,18 @@ public class FestivalServiceImpl implements FestivalService {
     if (next != allowedNext) {
         throw new BusinessRuleException("Invalid transition: " + current + " -> " + next);
     }
-}
+    }
+
+    private void requireProgrammer(Long festivalId, Long userId) {
+    if (userId == null) {
+        throw new BusinessRuleException("Unauthenticated user");
+    }
+    boolean ok = userFestivalRoleRepository
+            .existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "PROGRAMMER");
+    if (!ok) {
+        throw new BusinessRuleException("Only PROGRAMMER can perform this action");
+    }
+    }
 
 
     @Override
@@ -266,20 +325,6 @@ public class FestivalServiceImpl implements FestivalService {
         return toResponse(savedFestival);
     }
 
-
-    private void requireProgrammer(Long userId, Long festivalId) {
-        if (userId == null) {
-            throw new BusinessRuleException("userId is required");
-        }
-
-        boolean ok =
-                userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "PROGRAMMER")
-                        || userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "ORGANIZER");
-
-        if (!ok) {
-            throw new BusinessRuleException("Only PROGRAMMER can perform this action");
-        }
-    }
 
     private FestivalResponse toResponse(Festival f) {
         return new FestivalResponse(
