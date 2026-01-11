@@ -10,14 +10,12 @@ import java.util.List;
 public interface FestivalService {
 
     FestivalResponse createFestival(FestivalCreateRequest request);
-
-    FestivalResponse updateFestival(Long id, FestivalUpdateRequest request);
-
+    FestivalResponse updateFestival(Long id, Long actorUserId, FestivalUpdateRequest request);
     List<FestivalResponse> listFestivals();
 
     FestivalResponse getFestival(Long id);
 
-    void deleteFestival(Long id);
+    void deleteFestival(Long id, Long actorUserId);
 
     FestivalResponse changeState(Long id, FestivalState newState);
 
