@@ -1,64 +1,60 @@
 package gr.uoi.festivalmanager.controller;
 
-import gr.uoi.festivalmanager.dto.AuthMeResponse;
-import gr.uoi.festivalmanager.entity.User;
+import gr.uoi.festivalmanager.dto.FestivalRoleDto;
+import gr.uoi.festivalmanager.dto.MeResponse;
+import gr.uoi.festivalmanager.entity.UserFestivalRole;
 import gr.uoi.festivalmanager.repository.UserFestivalRoleRepository;
-import gr.uoi.festivalmanager.repository.UserRepository;
-import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import gr.uoi.festivalmanager.security.SecurityUser;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    private final UserRepository userRepository;
     private final UserFestivalRoleRepository userFestivalRoleRepository;
 
-    public AuthController(UserRepository userRepository, UserFestivalRoleRepository userFestivalRoleRepository) {
-        this.userRepository = userRepository;
+    public AuthController(UserFestivalRoleRepository userFestivalRoleRepository) {
         this.userFestivalRoleRepository = userFestivalRoleRepository;
     }
 
     @GetMapping("/me")
-    public AuthMeResponse me(Authentication authentication) {
-        if (authentication == null || authentication.getName() == null) {
-            throw new IllegalStateException("No authentication principal");
-        }
+    public MeResponse me(@AuthenticationPrincipal SecurityUser principal) {
+        Long userId = principal.getId();
 
-        String username = authentication.getName();
+        List<UserFestivalRole> roles = userFestivalRoleRepository.findAllByUserId(userId);
+        List<FestivalRoleDto> festivalRoles = roles.stream()
+                .map(ufr -> new FestivalRoleDto(
+                        ufr.getFestival().getId(),
+                        ufr.getRole() == null ? null : ufr.getRole().getName()
+                ))
+                .toList();
 
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalStateException("User not found: " + username));
+        String effective = computeEffectiveRole(festivalRoles);
 
-        Long userId = user.getId();
+        return new MeResponse(userId, principal.getUsername(), effective, festivalRoles);
+    }
 
-        List<Object[]> rows = userFestivalRoleRepository.findFestivalRoles(userId);
-        List<AuthMeResponse.FestivalRole> festivalRoles = new ArrayList<>();
-
+    private String computeEffectiveRole(List<FestivalRoleDto> festivalRoles) {
         boolean hasProgrammer = false;
         boolean hasStaff = false;
         boolean hasSubmitter = false;
 
-        for (Object[] r : rows) {
-            Long festivalId = (Long) r[0];
-            String role = (String) r[1];
-
-            festivalRoles.add(new AuthMeResponse.FestivalRole(festivalId, role));
-
-            if ("PROGRAMMER".equalsIgnoreCase(role)) hasProgrammer = true;
-            else if ("STAFF".equalsIgnoreCase(role)) hasStaff = true;
-            else if ("SUBMITTER".equalsIgnoreCase(role)) hasSubmitter = true;
+        for (FestivalRoleDto r : festivalRoles) {
+            if (r == null || r.getRole() == null) continue;
+            String name = r.getRole().trim().toUpperCase();
+            if (name.contains("PROGRAMMER") || name.contains("ORGANIZER")) hasProgrammer = true;
+            else if (name.contains("STAFF")) hasStaff = true;
+            else if (name.contains("SUBMITTER") || name.contains("ARTIST")) hasSubmitter = true;
         }
 
-        String effectiveRole;
-        if (hasProgrammer) effectiveRole = "PROGRAMMER";
-        else if (hasStaff) effectiveRole = "STAFF";
-        else if (hasSubmitter) effectiveRole = "SUBMITTER";
-        else effectiveRole = "SUBMITTER";
-
-        return new AuthMeResponse(userId, username, effectiveRole, festivalRoles);
+        if (hasProgrammer) return "PROGRAMMER";
+        if (hasStaff) return "STAFF";
+        if (hasSubmitter) return "SUBMITTER";
+        return "VISITOR";
     }
 }

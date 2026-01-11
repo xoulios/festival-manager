@@ -48,16 +48,47 @@ public class FestivalServiceImpl implements FestivalService {
     @Override
     @Transactional
     public FestivalResponse createFestival(FestivalCreateRequest request) {
-        Festival festival = new Festival();
-        festival.setTitle(request.getTitle());
-        festival.setDescription(request.getDescription());
-        festival.setStartDate(request.getStartDate());
-        festival.setEndDate(request.getEndDate());
-        festival.setState(FestivalState.CREATED);
-
-        Festival saved = festivalRepository.save(festival);
-        return toResponse(saved);
+    return createFestival(request, null);
     }
+
+    @Override
+    @Transactional
+    public FestivalResponse createFestival(FestivalCreateRequest request, Long creatorUserId) {
+    Festival festival = new Festival();
+    festival.setDescription(request.getDescription());
+    festival.setStartDate(request.getStartDate());
+    festival.setEndDate(request.getEndDate());
+    if (request.getStartDate() != null && request.getEndDate() != null
+        && request.getStartDate().isAfter(request.getEndDate())) {
+    throw new BusinessRuleException("Start date must be before or equal to end date");
+    }
+    festival.setState(FestivalState.CREATED);
+    String title = request.getTitle() == null ? null : request.getTitle().trim();
+    if (title == null || title.isBlank()) {
+    throw new BusinessRuleException("Title is required");
+    }
+    if (festivalRepository.existsByTitleIgnoreCase(title)) {
+    throw new BusinessRuleException("Festival title must be unique");
+    }
+    festival.setTitle(title);
+
+    Festival saved = festivalRepository.save(festival);
+    if (creatorUserId != null) {
+        User creator = userRepository.findById(creatorUserId)
+                .orElseThrow(() -> new BusinessRuleException("User not found"));
+
+        Role programmerRole = roleRepository.findByName("PROGRAMMER")
+                .orElseThrow(() -> new BusinessRuleException("Role PROGRAMMER not found"));
+
+        boolean already = userFestivalRoleRepository.existsByIdUserIdAndIdFestivalId(creatorUserId, saved.getId());
+        if (!already) {
+            userFestivalRoleRepository.save(new UserFestivalRole(creator, saved, programmerRole));
+        }
+    }
+
+    return toResponse(saved);
+}
+
 
     @Override
     @Transactional
@@ -127,32 +158,33 @@ public class FestivalServiceImpl implements FestivalService {
     }
 
     private void validateTransition(FestivalState current, FestivalState next) {
-        if (current == null || next == null) {
-            throw new BusinessRuleException("Invalid festival state");
-        }
-        if (current == next) {
-            throw new BusinessRuleException("Festival is already in state " + next);
-        }
-
-        FestivalState allowedNext = switch (current) {
-            case CREATED -> FestivalState.SUBMISSION;
-            case SUBMISSION -> FestivalState.ASSIGNMENT;
-            case ASSIGNMENT -> FestivalState.REVIEW;
-            case REVIEW -> FestivalState.SCHEDULING;
-            case SCHEDULING -> FestivalState.FINAL_SUBMISSION;
-            case FINAL_SUBMISSION -> FestivalState.DECISION;
-            case DECISION -> FestivalState.ANNOUNCED;
-            case ANNOUNCED -> FestivalState.COMPLETE;
-            case COMPLETE -> null;
-        };
-
-        if (allowedNext == null) {
-            throw new BusinessRuleException("Festival is in terminal state " + current);
-        }
-        if (next != allowedNext) {
-            throw new BusinessRuleException("Invalid transition: " + current + " -> " + next);
-        }
+    if (current == null || next == null) {
+        throw new BusinessRuleException("Invalid festival state");
     }
+    if (current == next) {
+        throw new BusinessRuleException("Festival is already in state " + next);
+    }
+
+    FestivalState allowedNext = switch (current) {
+        case CREATED -> FestivalState.SUBMISSION;
+        case SUBMISSION -> FestivalState.ASSIGNMENT;
+        case ASSIGNMENT -> FestivalState.REVIEW;
+        case REVIEW -> FestivalState.SCHEDULING;
+        case SCHEDULING -> FestivalState.FINAL_SUBMISSION;
+        case FINAL_SUBMISSION -> FestivalState.DECISION;
+        case DECISION -> FestivalState.ANNOUNCED;
+        case ANNOUNCED -> FestivalState.COMPLETE;
+        case COMPLETE -> null;
+    };
+
+    if (allowedNext == null) {
+        throw new BusinessRuleException("Festival is in terminal state " + current);
+    }
+    if (next != allowedNext) {
+        throw new BusinessRuleException("Invalid transition: " + current + " -> " + next);
+    }
+}
+
 
     @Override
     @Transactional

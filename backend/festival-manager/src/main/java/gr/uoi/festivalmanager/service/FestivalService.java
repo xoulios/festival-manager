@@ -24,6 +24,8 @@ public interface FestivalService {
     FestivalResponse moveToDecision(Long festivalId, Long userId);
 
     FestivalResponse changeState(Long id, Long userId, FestivalState newState);
+
+    FestivalResponse createFestival(FestivalCreateRequest request, Long creatorUserId);
     
     void assignRole(Long festivalId, AssignRoleRequest request);
     void assignRole(Long festivalId, Long userId, Long roleId);

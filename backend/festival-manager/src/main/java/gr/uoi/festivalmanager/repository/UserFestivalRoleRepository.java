@@ -10,30 +10,13 @@ import java.util.Optional;
 
 public interface UserFestivalRoleRepository extends JpaRepository<UserFestivalRole, UserFestivalRoleId> {
 
-    boolean existsByIdUserIdAndIdFestivalIdAndRole_Name(Long userId, Long festivalId, String roleName);
     boolean existsByIdUserIdAndIdFestivalId(Long userId, Long festivalId);
-    boolean existsByUser_IdAndFestival_IdAndRole_Name(Long userId, Long festivalId, String roleName);
+    
+    boolean existsByIdUserIdAndIdFestivalIdAndRole_Name(Long userId, Long festivalId, String roleName);
 
-    @Query("""
-        select (count(ufr) > 0) 
-        from UserFestivalRole ufr
-        where ufr.user.id = :userId
-          and ufr.festival.id = :festivalId
-          and lower(ufr.role.name) = lower(:roleName)
-    """)
-    boolean existsByUserIdAndFestivalIdAndRoleName(Long userId, Long festivalId, String roleName);
-
-    @Query("""
-        select ufr.festival.id, ufr.role.name
-        from UserFestivalRole ufr
-        where ufr.user.id = :userId
-    """)
-    List<Object[]> findFestivalRoles(Long userId);
-
-    @Query("""
-        select ufr.role.name
-        from UserFestivalRole ufr
-        where ufr.user.id = :userId and ufr.festival.id = :festivalId
-    """)
+    @Query("select ufr.role.name from UserFestivalRole ufr where ufr.id.userId = :userId and ufr.id.festivalId = :festivalId")
     Optional<String> findRoleNameForUserInFestival(Long userId, Long festivalId);
+
+    @Query("select ufr from UserFestivalRole ufr join fetch ufr.role join fetch ufr.festival where ufr.user.id = :userId")
+    List<UserFestivalRole> findAllByUserId(Long userId);
 }

@@ -18,7 +18,7 @@ import {
 
 type Festival = {
   id: number;
-  name: string;
+  title: string;
   startDate?: string;
   endDate?: string;
   description?: string;
@@ -299,7 +299,7 @@ export default function ScreeningsPage() {
     }
   }
 
-  const headerFestivalText = festival ? `${festival.name} (#${festival.id})` : festivalId ? `Festival #${festivalId}` : "";
+  const headerFestivalText = festival ? `${festival.title} (#${festival.id})` : festivalId ? `Festival #${festivalId}` : "";
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-6">
@@ -337,7 +337,7 @@ export default function ScreeningsPage() {
             >
               {(festivals || []).map((f) => (
                 <option key={f.id} value={f.id}>
-                  {f.name} (#{f.id})
+                  {f.title} (#{f.id})
                 </option>
               ))}
               {!festivals.length ? <option value="">(Δεν βρέθηκαν festivals)</option> : null}

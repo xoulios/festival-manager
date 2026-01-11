@@ -17,6 +17,7 @@ const links = [
   { to: "/screenings", label: "Προβολές", icon: CalendarDays, roles: ["PROGRAMMER", "STAFF"] },
   { to: "/my-submissions", label: "Οι Υποβολές μου", icon: FileText, roles: ["SUBMITTER"] },
   { to: "/profile", label: "Προφίλ", icon: User, roles: ["ALL"] },
+  { to: "/my-assignments", label: "Οι Αναθέσεις μου", icon: FileText, roles: ["STAFF"] },
 ];
 
 export default function Sidebar() {
