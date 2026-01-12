@@ -124,4 +124,13 @@ public class PerformanceController {
         return ResponseEntity.ok(performanceService.searchPerformancesView(festivalId, userId, q));
     }
 
+    @GetMapping("/{id}/view")
+    public ResponseEntity<PerformanceViewDto> viewById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal SecurityUser principal
+    ) {
+        Long userId = (principal == null ? null : principal.getId());
+        return ResponseEntity.ok(performanceService.viewPerformanceView(id, userId));
+    }
+
 }

@@ -125,6 +125,20 @@ public class PerformanceServiceImpl implements PerformanceService {
         performanceRepository.delete(p); 
         return p;
     }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public PerformanceViewDto viewPerformanceView(Long performanceId, Long userId) {
+    Performance p = performanceRepository.findById(performanceId)
+            .orElseThrow(() -> new BusinessRuleException("Performance not found"));
+
+    PerformanceViewDto dto = toViewDto(p, userId);
+    if (dto == null) {
+        throw new BusinessRuleException("Performance not found");
+    }
+    return dto;
+    }
+
 
     @Override
     @Transactional
@@ -312,62 +326,73 @@ public class PerformanceServiceImpl implements PerformanceService {
     }
 
     private PerformanceViewDto toViewDto(Performance p, Long userId) {
-        Long festivalId = p.getFestival().getId();
-        boolean isProgrammer = hasRole(userId, festivalId, "PROGRAMMER") || hasRole(userId, festivalId, "ORGANIZER");
-        boolean isStaff = hasRole(userId, festivalId, "STAFF");
-        boolean isArtist = hasRole(userId, festivalId, "ARTIST") && p.getArtist() != null && userId.equals(p.getArtist().getId());
-        boolean isAssignedStaff = isStaff && p.getHandler() != null && p.getHandler().getId() != null && p.getHandler().getId().equals(userId);
-        boolean isVisitor = !isProgrammer && !isStaff && !isArtist;
+    Long festivalId = p.getFestival().getId();
 
-        if (isVisitor) {
-            switch (p.getState()) {
-                case SCHEDULED -> { /* ok */ }
-                default -> { return null; }
-            }
-        }
+    boolean isProgrammer = hasRole(userId, festivalId, "PROGRAMMER") || hasRole(userId, festivalId, "ORGANIZER");
+    boolean isStaff = hasRole(userId, festivalId, "STAFF");
+    boolean isArtistOwner = hasRole(userId, festivalId, "ARTIST")
+            && p.getArtist() != null
+            && p.getArtist().getId() != null
+            && userId != null
+            && userId.equals(p.getArtist().getId());
 
-        if (isStaff && !isProgrammer && !isAssignedStaff) {
+    boolean isAssignedStaff = isStaff
+            && p.getHandler() != null
+            && p.getHandler().getId() != null
+            && userId != null
+            && userId.equals(p.getHandler().getId());
+
+    boolean isVisitor = !isProgrammer && !isStaff && !isArtistOwner;
+
+    if (isVisitor) {
+        Festival festival = requireFestival(p);
+        if (festival.getState() != FestivalState.ANNOUNCED && festival.getState() != FestivalState.COMPLETE) {
             return null;
         }
-
-        PerformanceViewDto dto = new PerformanceViewDto();
-        dto.setId(p.getId());
-        dto.setFestivalId(festivalId);
-        dto.setName(p.getName());
-        dto.setGenre(p.getGenre());
-        dto.setDescription(p.getDescription());
-
-        if (!isVisitor) {
-            dto.setState(p.getState() == null ? null : p.getState().name());
-        } else {
-            dto.setState(p.getState() == null ? null : p.getState().name());
+        if (p.getState() != PerformanceState.SCHEDULED) {
+            return null;
         }
-
-        if (isProgrammer || isAssignedStaff || isArtist) {
-            dto.setScheduledSlot(p.getScheduledSlot());
-        }
-
-        if (isProgrammer || isArtist || isAssignedStaff) {
-            dto.setPreferredRehearsalTimes(p.getPreferredRehearsalTimes());
-            dto.setPreferredTimeSlots(p.getPreferredTimeSlots());
-        }
-
-        if (isProgrammer || isAssignedStaff || isArtist) {
-            dto.setFinalSetlist(p.getFinalSetlist());
-            dto.setFinalRehearsalTimes(p.getFinalRehearsalTimes());
-            dto.setFinalTimeSlots(p.getFinalTimeSlots());
-        }
-
-        if (isProgrammer || isAssignedStaff) {
-            Optional<Review> last = reviewRepository.findTopByPerformanceIdOrderByIdDesc(p.getId());
-            if (last.isPresent()) {
-                dto.setLastReviewScore(last.get().getScore());
-                dto.setLastReviewComments(last.get().getComments());
-            }
-        }
-
-        return dto;
     }
+
+    if (isStaff && !isProgrammer && !isAssignedStaff) {
+        return null;
+    }
+
+    PerformanceViewDto dto = new PerformanceViewDto();
+    dto.setId(p.getId());
+    dto.setFestivalId(festivalId);
+    dto.setName(p.getName());
+    dto.setGenre(p.getGenre());
+    dto.setDescription(p.getDescription());
+
+    dto.setState(p.getState() == null ? null : p.getState().name());
+
+    if (isVisitor || isProgrammer || isAssignedStaff || isArtistOwner) {
+        dto.setScheduledSlot(p.getScheduledSlot());
+    }
+
+    if (isProgrammer || isArtistOwner || isAssignedStaff) {
+        dto.setPreferredRehearsalTimes(p.getPreferredRehearsalTimes());
+        dto.setPreferredTimeSlots(p.getPreferredTimeSlots());
+    }
+
+    if (isProgrammer || isAssignedStaff || isArtistOwner) {
+        dto.setFinalSetlist(p.getFinalSetlist());
+        dto.setFinalRehearsalTimes(p.getFinalRehearsalTimes());
+        dto.setFinalTimeSlots(p.getFinalTimeSlots());
+    }
+
+    if (isProgrammer || isAssignedStaff) {
+        Optional<Review> last = reviewRepository.findTopByPerformanceIdOrderByIdDesc(p.getId());
+        if (last.isPresent()) {
+            dto.setLastReviewScore(last.get().getScore());
+            dto.setLastReviewComments(last.get().getComments());
+        }
+    }
+
+    return dto;
+    }
+
 
 
     private Festival requireFestival(Performance p) {

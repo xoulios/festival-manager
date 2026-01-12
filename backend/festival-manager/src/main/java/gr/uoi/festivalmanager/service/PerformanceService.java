@@ -35,5 +35,7 @@ public interface PerformanceService {
     List<PerformanceViewDto> searchPerformancesView(Long festivalId, Long userId, String query);
 
     List<Performance> searchPerformances(Long festivalId, String query);
+
+    PerformanceViewDto viewPerformanceView(Long performanceId, Long userId);
     
 }
