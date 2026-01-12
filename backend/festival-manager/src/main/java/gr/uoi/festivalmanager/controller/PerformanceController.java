@@ -30,7 +30,9 @@ public class PerformanceController {
             @AuthenticationPrincipal SecurityUser principal,
             @RequestBody Performance performance
     ) {
-        if (principal == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
         return ResponseEntity.ok(performanceService.createPerformance(festivalId, principal.getId(), performance));
     }
 
@@ -40,7 +42,9 @@ public class PerformanceController {
             @AuthenticationPrincipal SecurityUser principal,
             @RequestBody Performance performance
     ) {
-        if (principal == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
         return ResponseEntity.ok(performanceService.updatePerformance(id, principal.getId(), performance));
     }
 
@@ -49,7 +53,9 @@ public class PerformanceController {
             @PathVariable Long id,
             @AuthenticationPrincipal SecurityUser principal
     ) {
-        if (principal == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
         return ResponseEntity.ok(performanceService.submitPerformance(id, principal.getId()));
     }
 
@@ -58,7 +64,9 @@ public class PerformanceController {
             @PathVariable Long id,
             @AuthenticationPrincipal SecurityUser principal
     ) {
-        if (principal == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
         return ResponseEntity.ok(performanceService.withdrawPerformance(id, principal.getId()));
     }
 
@@ -67,7 +75,9 @@ public class PerformanceController {
             @PathVariable Long id,
             @AuthenticationPrincipal SecurityUser principal
     ) {
-        if (principal == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
         return ResponseEntity.ok(performanceService.approvePerformance(id, principal.getId()));
     }
 
@@ -77,7 +87,9 @@ public class PerformanceController {
             @AuthenticationPrincipal SecurityUser principal,
             @RequestParam(required = false) String reason
     ) {
-        if (principal == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
         return ResponseEntity.ok(performanceService.rejectPerformance(id, principal.getId(), reason));
     }
 
@@ -87,7 +99,9 @@ public class PerformanceController {
             @AuthenticationPrincipal SecurityUser principal,
             @RequestBody ReviewRequest request
     ) {
-        if (principal == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
         return ResponseEntity.ok(performanceService.reviewPerformance(id, principal.getId(), request));
     }
 
@@ -97,7 +111,9 @@ public class PerformanceController {
             @AuthenticationPrincipal SecurityUser principal,
             @RequestParam String scheduledSlot
     ) {
-        if (principal == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
         return ResponseEntity.ok(performanceService.schedulePerformance(id, principal.getId(), scheduledSlot));
     }
 
@@ -107,7 +123,9 @@ public class PerformanceController {
             @AuthenticationPrincipal SecurityUser principal,
             @RequestBody FinalSubmitRequest request
     ) {
-        if (principal == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
         return ResponseEntity.ok(performanceService.finalSubmitPerformance(id, principal.getId(), request));
     }
 
@@ -117,7 +135,9 @@ public class PerformanceController {
             @AuthenticationPrincipal SecurityUser principal,
             @RequestParam Long staffId
     ) {
-        if (principal == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
         return ResponseEntity.ok(performanceService.assignHandler(id, principal.getId(), staffId));
     }
 
@@ -126,7 +146,9 @@ public class PerformanceController {
             @PathVariable Long id,
             @AuthenticationPrincipal SecurityUser principal
     ) {
-        if (principal == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
         return ResponseEntity.ok(performanceService.finalAccept(id, principal.getId()));
     }
 
@@ -136,7 +158,9 @@ public class PerformanceController {
             @AuthenticationPrincipal SecurityUser principal,
             @RequestParam(required = false) String reason
     ) {
-        if (principal == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
         return ResponseEntity.ok(performanceService.finalReject(id, principal.getId(), reason));
     }
 
@@ -148,12 +172,14 @@ public class PerformanceController {
             @RequestParam(name = "genre", required = false) String genre,
             @RequestParam(name = "bandMembers", required = false) String bandMembers,
             @RequestParam(name = "state", required = false) String state,
+            @RequestParam(name = "scheduledFrom", required = false) String scheduledFrom,
+            @RequestParam(name = "scheduledTo", required = false) String scheduledTo,
             @RequestParam(name = "sortBy", required = false) String sortBy,
             @RequestParam(name = "sortDir", required = false) String sortDir
     ) {
         return ResponseEntity.ok(
                 performanceService.searchPerformancesAdvanced(
-                        festivalId, q, name, genre, bandMembers, state, sortBy, sortDir
+                        festivalId, q, name, genre, bandMembers, state, scheduledFrom, scheduledTo, sortBy, sortDir
                 )
         );
     }
@@ -167,13 +193,15 @@ public class PerformanceController {
             @RequestParam(name = "genre", required = false) String genre,
             @RequestParam(name = "bandMembers", required = false) String bandMembers,
             @RequestParam(name = "state", required = false) String state,
+            @RequestParam(name = "scheduledFrom", required = false) String scheduledFrom,
+            @RequestParam(name = "scheduledTo", required = false) String scheduledTo,
             @RequestParam(name = "sortBy", required = false) String sortBy,
             @RequestParam(name = "sortDir", required = false) String sortDir
     ) {
         Long userId = (principal == null ? null : principal.getId());
         return ResponseEntity.ok(
                 performanceService.searchPerformancesViewAdvanced(
-                        festivalId, userId, q, name, genre, bandMembers, state, sortBy, sortDir
+                        festivalId, userId, q, name, genre, bandMembers, state, scheduledFrom, scheduledTo, sortBy, sortDir
                 )
         );
     }
