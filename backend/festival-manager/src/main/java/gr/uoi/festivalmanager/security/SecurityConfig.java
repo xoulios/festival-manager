@@ -18,10 +18,17 @@ public class SecurityConfig {
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
+                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
                 .authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
+                // Auth endpoints
                 .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/**").permitAll()
+                // H2 console (dev)
+                .requestMatchers("/h2/**").permitAll()
+                // Public "view" endpoints (role-aware redaction happens in service)
+                .requestMatchers(HttpMethod.GET, "/api/festivals/search-view").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/festivals/*/view").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/performances/search-view").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/performances/*/view").permitAll()
                 .anyRequest().authenticated()
                 )
                 .httpBasic(Customizer.withDefaults());

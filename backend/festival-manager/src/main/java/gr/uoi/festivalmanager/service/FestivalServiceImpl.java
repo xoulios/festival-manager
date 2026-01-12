@@ -388,6 +388,7 @@ public class FestivalServiceImpl implements FestivalService {
         for (Performance p : performances) {
             if (p.getState() == PerformanceState.APPROVED) {
                 p.setState(PerformanceState.REJECTED);
+                p.setRejectionReason("AUTO-REJECT: not finally submitted");
                 performanceRepository.save(p);
             }
         }
