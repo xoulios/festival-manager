@@ -254,18 +254,15 @@ public class PerformanceServiceImpl implements PerformanceService {
                 .orElseThrow(() -> new BusinessRuleException("Performance not found"));
 
         Festival festival = requireFestival(p);
-        requireRole(staffId, festival.getId(), "STAFF");
 
-        if (p.getHandler() == null
-                || p.getHandler().getId() == null
-                || !p.getHandler().getId().equals(staffId)) {
-            throw new BusinessRuleException(
-                    "Only the assigned handler can approve this performance"
-            );
+        boolean isProgrammer = hasRole(staffId, festival.getId(), "PROGRAMMER");
+        if (!isProgrammer) {
+            requireSubmitterOwner(p, staffId);
         }
-        if (festival.getState() != FestivalState.REVIEW) {
+
+        if (festival.getState() != FestivalState.SCHEDULING) {
             throw new BusinessRuleException(
-                    "Approval allowed only when festival is in REVIEW state"
+                    "Approval allowed only when festival is in SCHEDULING state"
             );
         }
         if (p.getState() != PerformanceState.REVIEWED) {
@@ -280,28 +277,18 @@ public class PerformanceServiceImpl implements PerformanceService {
 
     @Override
     @Transactional
-    public Performance rejectPerformance(
-            Long performanceId,
-            Long staffId,
-            String reason
-    ) {
+    public Performance rejectPerformance(Long performanceId, Long staffId, String reason) {
         Performance p = performanceRepository
                 .findById(performanceId)
                 .orElseThrow(() -> new BusinessRuleException("Performance not found"));
 
         Festival festival = requireFestival(p);
-        requireRole(staffId, festival.getId(), "STAFF");
 
-        if (p.getHandler() == null
-                || p.getHandler().getId() == null
-                || !p.getHandler().getId().equals(staffId)) {
+        requireRole(staffId, festival.getId(), "PROGRAMMER");
+
+        if (festival.getState() != FestivalState.SCHEDULING) {
             throw new BusinessRuleException(
-                    "Only the assigned handler can reject this performance"
-            );
-        }
-        if (festival.getState() != FestivalState.REVIEW) {
-            throw new BusinessRuleException(
-                    "Rejection allowed only when festival is in REVIEW state"
+                    "Rejection allowed only when festival is in SCHEDULING state"
             );
         }
         if (p.getState() != PerformanceState.REVIEWED) {
@@ -324,6 +311,7 @@ public class PerformanceServiceImpl implements PerformanceService {
         review.setComments("REJECT: " + reason.trim());
         reviewRepository.save(review);
 
+        p.setRejectionReason(reason.trim());
         p.setState(PerformanceState.REJECTED);
         return performanceRepository.save(p);
     }
@@ -343,6 +331,7 @@ public class PerformanceServiceImpl implements PerformanceService {
 
         boolean isOrganizer = hasRole(schedulerId, festival.getId(), "ORGANIZER");
         boolean isStaff = hasRole(schedulerId, festival.getId(), "STAFF");
+        boolean isProgrammer = hasRole(schedulerId, festival.getId(), "PROGRAMMER");
         if (!isOrganizer && !isStaff) {
             throw new BusinessRuleException(
                     "Only ORGANIZER or STAFF can schedule performances"
@@ -955,6 +944,7 @@ public class PerformanceServiceImpl implements PerformanceService {
         reviewRepository.save(review);
 
         p.setState(PerformanceState.REJECTED);
+        p.setRejectionReason(reason.trim());
         performanceRepository.save(p);
 
         return p;
