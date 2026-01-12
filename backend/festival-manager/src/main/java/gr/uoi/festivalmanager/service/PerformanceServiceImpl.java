@@ -17,7 +17,9 @@ import gr.uoi.festivalmanager.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import gr.uoi.festivalmanager.dto.PerformanceViewDto;
-
+import gr.uoi.festivalmanager.entity.Role;
+import gr.uoi.festivalmanager.entity.UserFestivalRole;
+import gr.uoi.festivalmanager.repository.RoleRepository;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -34,24 +36,30 @@ public class PerformanceServiceImpl implements PerformanceService {
     private final UserRepository userRepository;
     private final UserFestivalRoleRepository userFestivalRoleRepository;
     private final ReviewRepository reviewRepository;
+    private final RoleRepository roleRepository;
+
 
     public PerformanceServiceImpl(
-            PerformanceRepository performanceRepository,
-            FestivalRepository festivalRepository,
-            UserRepository userRepository,
-            UserFestivalRoleRepository userFestivalRoleRepository,
-            ReviewRepository reviewRepository
+        PerformanceRepository performanceRepository,
+        FestivalRepository festivalRepository,
+        UserRepository userRepository,
+        UserFestivalRoleRepository userFestivalRoleRepository,
+        ReviewRepository reviewRepository,
+        RoleRepository roleRepository
     ) {
-        this.performanceRepository = performanceRepository;
-        this.festivalRepository = festivalRepository;
-        this.userRepository = userRepository;
-        this.userFestivalRoleRepository = userFestivalRoleRepository;
-        this.reviewRepository = reviewRepository;
+    this.performanceRepository = performanceRepository;
+    this.festivalRepository = festivalRepository;
+    this.userRepository = userRepository;
+    this.userFestivalRoleRepository = userFestivalRoleRepository;
+    this.reviewRepository = reviewRepository;
+    this.roleRepository = roleRepository;
     }
+
 
     @Override
     @Transactional
     public Performance createPerformance(Long festivalId, Long artistId, Performance performance) {
+        ensureArtistRole(festivalId, artistId);
         Festival festival = festivalRepository.findById(festivalId)
                 .orElseThrow(() -> new BusinessRuleException("Festival not found"));
 
@@ -486,6 +494,24 @@ public class PerformanceServiceImpl implements PerformanceService {
         performance.setHandler(staff);
         return performanceRepository.save(performance);
     }
+
+    private void ensureArtistRole(Long festivalId, Long userId) {
+    if (userFestivalRoleRepository.existsByIdUserIdAndIdFestivalId(userId, festivalId)) {
+        return;
+    }
+
+    Role artistRole = roleRepository.findByName("ARTIST")
+            .orElseThrow(() -> new BusinessRuleException("Role ARTIST not found"));
+
+    User user = userRepository.findById(userId)
+            .orElseThrow(() -> new BusinessRuleException("User not found"));
+
+    Festival festival = festivalRepository.findById(festivalId)
+            .orElseThrow(() -> new BusinessRuleException("Festival not found"));
+
+    userFestivalRoleRepository.save(new UserFestivalRole(user, festival, artistRole));
+    }
+
 
     @Override
     @Transactional
