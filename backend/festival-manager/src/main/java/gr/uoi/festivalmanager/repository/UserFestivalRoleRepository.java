@@ -21,6 +21,11 @@ public interface UserFestivalRoleRepository extends JpaRepository<UserFestivalRo
     @Query("select ufr from UserFestivalRole ufr join fetch ufr.role join fetch ufr.festival where ufr.user.id = :userId")
     List<UserFestivalRole> findAllByUserId(Long userId);
     
+   @Query("select ufr.user.username from UserFestivalRole ufr " +
+       "where ufr.id.festivalId = :festivalId and ufr.role.name = 'PROGRAMMER'")
+    List<String> findProgrammerUsernames(@Param("festivalId") Long festivalId);
+
+
     @Query("""
     select new gr.uoi.festivalmanager.dto.AuthMeResponse$FestivalRole(ufr.id.festivalId, ufr.role.name)
     from UserFestivalRole ufr

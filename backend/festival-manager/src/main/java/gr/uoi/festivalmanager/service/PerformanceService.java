@@ -12,12 +12,18 @@ public interface PerformanceService {
 
     Performance updatePerformance(Long performanceId, Performance updated);
 
+    Performance updatePerformance(Long performanceId, Long artistId, Performance updated);
+
     Performance submitPerformance(Long performanceId);
+
+    Performance submitPerformance(Long performanceId, Long artistId);
 
     Performance withdrawPerformance(Long performanceId);
 
+    Performance withdrawPerformance(Long performanceId, Long artistId);
+
     Performance reviewPerformance(Long performanceId, Long staffId, ReviewRequest request);
-    
+
     Performance approvePerformance(Long performanceId, Long staffId);
 
     Performance rejectPerformance(Long performanceId, Long staffId, String reason);
@@ -25,15 +31,44 @@ public interface PerformanceService {
     Performance schedulePerformance(Long performanceId, Long schedulerId, String scheduledSlot);
 
     Performance finalSubmitPerformance(Long performanceId, Long artistId, FinalSubmitRequest request);
-    
+
     Performance assignHandler(Long performanceId, Long programmerId, Long staffId);
 
     Performance finalAccept(Long performanceId, Long programmerId);
-    
+
     Performance finalReject(Long performanceId, Long programmerId, String reason);
+
+    PerformanceViewDto viewPerformanceView(Long performanceId, Long userId);
 
     List<PerformanceViewDto> searchPerformancesView(Long festivalId, Long userId, String query);
 
+    List<PerformanceViewDto> searchPerformancesViewAdvanced(
+            Long festivalId,
+            Long userId,
+            String q,
+            String name,
+            String genre,
+            String bandMembers,
+            String state,
+            String scheduledFrom,
+            String scheduledTo,
+            String sortBy,
+            String sortDir
+    );
+
     List<Performance> searchPerformances(Long festivalId, String query);
-    
+
+    List<Performance> searchPerformancesAdvanced(
+            Long festivalId,
+            String q,
+            String name,
+            String genre,
+            String bandMembers,
+            String state,
+            String scheduledFrom,
+            String scheduledTo,
+            String sortBy,
+            String sortDir
+    );
+
 }
