@@ -29,134 +29,123 @@ import java.util.Optional;
 import java.time.LocalDateTime;
 
 @Service
+@Transactional
 public class PerformanceServiceImpl implements PerformanceService {
 
     private final PerformanceRepository performanceRepository;
     private final FestivalRepository festivalRepository;
     private final UserRepository userRepository;
     private final UserFestivalRoleRepository userFestivalRoleRepository;
-    private final ReviewRepository reviewRepository;
     private final RoleRepository roleRepository;
-
+    private final ReviewRepository reviewRepository;
 
     public PerformanceServiceImpl(
-        PerformanceRepository performanceRepository,
-        FestivalRepository festivalRepository,
-        UserRepository userRepository,
-        UserFestivalRoleRepository userFestivalRoleRepository,
-        ReviewRepository reviewRepository,
-        RoleRepository roleRepository
+            PerformanceRepository performanceRepository,
+            FestivalRepository festivalRepository,
+            UserRepository userRepository,
+            UserFestivalRoleRepository userFestivalRoleRepository,
+            RoleRepository roleRepository,
+            ReviewRepository reviewRepository
     ) {
-    this.performanceRepository = performanceRepository;
-    this.festivalRepository = festivalRepository;
-    this.userRepository = userRepository;
-    this.userFestivalRoleRepository = userFestivalRoleRepository;
-    this.reviewRepository = reviewRepository;
-    this.roleRepository = roleRepository;
+        this.performanceRepository = performanceRepository;
+        this.festivalRepository = festivalRepository;
+        this.userRepository = userRepository;
+        this.userFestivalRoleRepository = userFestivalRoleRepository;
+        this.roleRepository = roleRepository;
+        this.reviewRepository = reviewRepository;
+    }
+    
+    @Override
+    public Performance updatePerformance(Long performanceId, Performance updated) {
+    throw new BusinessRuleException("Authentication required");
+    }
+
+    @Override
+    public Performance submitPerformance(Long performanceId) {
+    throw new BusinessRuleException("Authentication required");
+    }
+
+    @Override
+    public Performance withdrawPerformance(Long performanceId) {
+    throw new BusinessRuleException("Authentication required");
     }
 
 
     @Override
-    @Transactional
     public Performance createPerformance(Long festivalId, Long artistId, Performance performance) {
-        ensureArtistRole(festivalId, artistId);
         Festival festival = festivalRepository.findById(festivalId)
                 .orElseThrow(() -> new BusinessRuleException("Festival not found"));
+
+        ensureSubmitterRole(festivalId, artistId);
 
         User artist = userRepository.findById(artistId)
                 .orElseThrow(() -> new BusinessRuleException("Artist not found"));
 
         performance.setFestival(festival);
         performance.setArtist(artist);
-
-        if (performance.getState() == null) {
-            performance.setState(PerformanceState.CREATED);
-        }
+        performance.setState(PerformanceState.CREATED);
 
         return performanceRepository.save(performance);
     }
 
     @Override
-    @Transactional
     public Performance updatePerformance(Long performanceId, Long artistId, Performance updated) {
-    Performance existing = performanceRepository.findById(performanceId)
-            .orElseThrow(() -> new BusinessRuleException("Performance not found"));
+        Performance existing = performanceRepository.findById(performanceId)
+                .orElseThrow(() -> new BusinessRuleException("Performance not found"));
 
-    requireOwnerAndSubmitter(artistId, existing);
+        requireSubmitterOwner(existing, artistId);
 
-    if (existing.getState() != PerformanceState.CREATED) {
-        throw new BusinessRuleException("Performance can be updated only in CREATED state");
-    }
+        if (existing.getState() != PerformanceState.CREATED) {
+            throw new BusinessRuleException("Only CREATED performances can be updated");
+        }
 
-    existing.setName(updated.getName());
-    existing.setDescription(updated.getDescription());
-    existing.setGenre(updated.getGenre());
-    existing.setDurationMinutes(updated.getDurationMinutes());
-    existing.setBandMembers(updated.getBandMembers());
-    existing.setTechnicalRequirements(updated.getTechnicalRequirements());
-    existing.setSetlist(updated.getSetlist());
-    existing.setPreferredRehearsalTimes(updated.getPreferredRehearsalTimes());
-    existing.setPreferredTimeSlots(updated.getPreferredTimeSlots());
+        existing.setName(updated.getName());
+        existing.setDescription(updated.getDescription());
+        existing.setGenre(updated.getGenre());
+        existing.setBandMembers(updated.getBandMembers());
+        existing.setTechnicalRequirements(updated.getTechnicalRequirements());
+        existing.setDurationMinutes(updated.getDurationMinutes());
+        existing.setSetlist(updated.getSetlist());
+        existing.setPreferredTimeSlots(updated.getPreferredTimeSlots());
+        existing.setPreferredRehearsalTimes(updated.getPreferredRehearsalTimes());
 
-    return performanceRepository.save(existing);
+        return performanceRepository.save(existing);
     }
 
     @Override
-    @Transactional
-    public Performance updatePerformance(Long performanceId, Performance updated) {
-    throw new BusinessRuleException("Authentication required for updating performance");
-    }
-
-
-    @Override
-    @Transactional
     public Performance submitPerformance(Long performanceId, Long artistId) {
-    Performance p = performanceRepository.findById(performanceId)
-            .orElseThrow(() -> new BusinessRuleException("Performance not found"));
+        Performance p = performanceRepository.findById(performanceId)
+                .orElseThrow(() -> new BusinessRuleException("Performance not found"));
 
-        requireOwnerAndSubmitter(artistId, p);
-    if (p.getState() != PerformanceState.CREATED) {
-        throw new BusinessRuleException("Only CREATED performances can be submitted");
-    }
+        requireSubmitterOwner(p, artistId);
 
-    Festival festival = requireFestival(p);
-    if (festival.getState() != FestivalState.SUBMISSION) {
-        throw new BusinessRuleException("Submission allowed only when festival is in SUBMISSION state");
-    }
+        if (p.getState() != PerformanceState.CREATED) {
+            throw new BusinessRuleException("Only CREATED performances can be submitted");
+        }
 
-    p.setState(PerformanceState.SUBMITTED);
-    return performanceRepository.save(p);
+        Festival festival = requireFestival(p);
+        if (festival.getState() != FestivalState.SUBMISSION) {
+            throw new BusinessRuleException("Festival is not in SUBMISSION state");
+        }
+
+        p.setState(PerformanceState.SUBMITTED);
+        return performanceRepository.save(p);
     }
 
     @Override
-    @Transactional
-    public Performance submitPerformance(Long performanceId) {
-    throw new BusinessRuleException("Authentication required for submitting performance");
-    }
-
-
-    @Override
-    @Transactional
     public Performance withdrawPerformance(Long performanceId, Long artistId) {
-    Performance p = performanceRepository.findById(performanceId)
-            .orElseThrow(() -> new BusinessRuleException("Performance not found"));
+        Performance p = performanceRepository.findById(performanceId)
+                .orElseThrow(() -> new BusinessRuleException("Performance not found"));
 
-    requireOwnerAndSubmitter(artistId, p);
+        requireSubmitterOwner(p, artistId);
 
-    if (p.getState() != PerformanceState.CREATED) {
-        throw new BusinessRuleException("Withdraw allowed only in CREATED state");
+        if (p.getState() != PerformanceState.CREATED) {
+            throw new BusinessRuleException("Only CREATED performances can be withdrawn");
+        }
+
+        performanceRepository.delete(p);
+        return p;
     }
-
-    performanceRepository.delete(p);
-    return p;
-    }
-
-    @Override
-    @Transactional
-    public Performance withdrawPerformance(Long performanceId) {
-    throw new BusinessRuleException("Authentication required for withdrawing performance");
-    }
-
     
     @Override
     @Transactional(readOnly = true)
@@ -345,141 +334,235 @@ public class PerformanceServiceImpl implements PerformanceService {
         return performanceRepository.save(p);
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<PerformanceViewDto> searchPerformancesView(Long festivalId, Long userId, String query) {
-
-        List<Performance> matches = searchPerformances(festivalId, query);
-
-        return matches.stream()
-                .map(p -> toViewDto(p, userId))
-                .filter(dto -> dto != null)
-                .toList();
-    }
-
     private PerformanceViewDto toViewDto(Performance p, Long userId) {
-    Long festivalId = p.getFestival().getId();
+    Festival festival = requireFestival(p);
 
-    boolean isProgrammer = hasRole(userId, festivalId, "PROGRAMMER") || hasRole(userId, festivalId, "ORGANIZER");
-    boolean isStaff = hasRole(userId, festivalId, "STAFF");
-    boolean isArtistOwner = hasRole(userId, festivalId, "ARTIST")
-            && p.getArtist() != null
-            && p.getArtist().getId() != null
-            && userId != null
-            && userId.equals(p.getArtist().getId());
-
-    boolean isAssignedStaff = isStaff
-            && p.getHandler() != null
-            && p.getHandler().getId() != null
-            && userId != null
-            && userId.equals(p.getHandler().getId());
-
-    boolean isVisitor = !isProgrammer && !isStaff && !isArtistOwner;
-
+    boolean isVisitor = (userId == null);
     if (isVisitor) {
-        Festival festival = requireFestival(p);
-        if (festival.getState() != FestivalState.ANNOUNCED && festival.getState() != FestivalState.COMPLETE) {
-            return null;
-        }
-        if (p.getState() != PerformanceState.SCHEDULED) {
-            return null;
-        }
-    }
+        if (festival.getState() != FestivalState.ANNOUNCED && festival.getState() != FestivalState.COMPLETE) return null;
+        if (p.getState() != PerformanceState.SCHEDULED) return null;
 
-    if (isStaff && !isProgrammer && !isAssignedStaff) {
-        return null;
+        PerformanceViewDto dto = new PerformanceViewDto();
+        dto.setId(p.getId());
+        dto.setFestivalId(festival.getId());
+        dto.setName(p.getName());
+        dto.setDescription(p.getDescription());
+        dto.setGenre(p.getGenre());
+        dto.setScheduledSlot(p.getScheduledSlot());
+        return dto;
     }
 
     PerformanceViewDto dto = new PerformanceViewDto();
     dto.setId(p.getId());
-    dto.setFestivalId(festivalId);
+    dto.setFestivalId(festival.getId());
     dto.setName(p.getName());
-    dto.setGenre(p.getGenre());
     dto.setDescription(p.getDescription());
-
+    dto.setGenre(p.getGenre());
+    dto.setScheduledSlot(p.getScheduledSlot());
     dto.setState(p.getState() == null ? null : p.getState().name());
+    dto.setPreferredRehearsalTimes(p.getPreferredRehearsalTimes());
+    dto.setPreferredTimeSlots(p.getPreferredTimeSlots());
+    dto.setFinalSetlist(p.getFinalSetlist());
+    dto.setFinalRehearsalTimes(p.getFinalRehearsalTimes());
+    dto.setFinalTimeSlots(p.getFinalTimeSlots());
 
-    if (isVisitor || isProgrammer || isAssignedStaff || isArtistOwner) {
-        dto.setScheduledSlot(p.getScheduledSlot());
-    }
-
-    if (isProgrammer || isArtistOwner || isAssignedStaff) {
-        dto.setPreferredRehearsalTimes(p.getPreferredRehearsalTimes());
-        dto.setPreferredTimeSlots(p.getPreferredTimeSlots());
-    }
-
-    if (isProgrammer || isAssignedStaff || isArtistOwner) {
-        dto.setFinalSetlist(p.getFinalSetlist());
-        dto.setFinalRehearsalTimes(p.getFinalRehearsalTimes());
-        dto.setFinalTimeSlots(p.getFinalTimeSlots());
-    }
-
-    if (isProgrammer || isAssignedStaff) {
-        Optional<Review> last = reviewRepository.findTopByPerformanceIdOrderByIdDesc(p.getId());
-        if (last.isPresent()) {
-            dto.setLastReviewScore(last.get().getScore());
-            dto.setLastReviewComments(last.get().getComments());
-        }
-    }
-
+    reviewRepository.findTopByPerformanceIdOrderByIdDesc(p.getId()).ifPresent(r -> {
+    dto.setLastReviewScore(r.getScore());
+    dto.setLastReviewComments(r.getComments());
+    });
     return dto;
     }
 
-    private void requireOwnerAndSubmitter(Long artistId, Performance p) {
-    if (artistId == null) {
-        throw new BusinessRuleException("Unauthenticated user");
-    }
-    if (p.getArtist() == null || p.getArtist().getId() == null) {
-        throw new BusinessRuleException("Performance has no owner");
-    }
-    if (!p.getArtist().getId().equals(artistId)) {
-        throw new BusinessRuleException("Only the SUBMITTER/owner can perform this action");
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Performance> searchPerformancesAdvanced(
+            Long festivalId,
+            String q,
+            String name,
+            String genre,
+            String bandMembers,
+            String state,
+            String sortBy,
+            String sortDir
+    ) {
+        List<Performance> all = performanceRepository.findByFestivalId(festivalId);
+
+        List<String> tokens = tokenize(q);
+        String nameL = safeLower(name);
+        String genreL = safeLower(genre);
+        String bandL = safeLower(bandMembers);
+
+        Optional<PerformanceState> stateOpt;
+        if (state != null && !state.isBlank()) {
+            try {
+                stateOpt = Optional.of(PerformanceState.valueOf(state.trim().toUpperCase(Locale.ROOT)));
+            } catch (IllegalArgumentException ex) {
+            throw new BusinessRuleException("Invalid state filter: " + state);
+        }
+        } else {
+            stateOpt = Optional.empty();
+        }
+
+        Comparator<Performance> comparator = buildPerformanceComparator(sortBy, sortDir);
+
+        return all.stream()
+                .filter(p -> matchesAllTokens(p, tokens))
+                .filter(p -> nameL.isEmpty() || safeLower(p.getName()).contains(nameL))
+                .filter(p -> genreL.isEmpty() || safeLower(p.getGenre()).contains(genreL))
+                .filter(p -> bandL.isEmpty() || safeLower(p.getBandMembers()).contains(bandL))
+                .filter(p -> stateOpt.isEmpty() || p.getState() == stateOpt.get())
+                .sorted(comparator)
+                .collect(Collectors.toList());
     }
 
-    Festival festival = requireFestival(p);
-    requireRole(artistId, festival.getId(), "SUBMITTER");
+    @Override
+    @Transactional(readOnly = true)
+    public List<PerformanceViewDto> searchPerformancesView(Long festivalId, Long userId, String query) {
+        return searchPerformancesViewAdvanced(festivalId, userId, query, null, null, null, null, null, null);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<PerformanceViewDto> searchPerformancesViewAdvanced(
+            Long festivalId,
+            Long userId,
+            String q,
+            String name,
+            String genre,
+            String bandMembers,
+            String state,
+            String sortBy,
+            String sortDir
+    ) {
+        return searchPerformancesAdvanced(festivalId, q, name, genre, bandMembers, state, sortBy, sortDir).stream()
+                .map(p -> toViewDto(p, userId))
+                .filter(dto -> dto != null)
+                .collect(Collectors.toList());
+    }
+
+    private Comparator<Performance> buildPerformanceComparator(String sortBy, String sortDir) {
+        String key = sortBy == null ? "genre" : sortBy.trim().toLowerCase(Locale.ROOT);
+        boolean desc = sortDir != null && sortDir.trim().equalsIgnoreCase("desc");
+
+        Comparator<Performance> c;
+        switch (key) {
+            case "name" -> c = Comparator.comparing(
+            (Performance p) -> safeLower(p.getName()),
+            Comparator.nullsLast(String::compareTo)
+            );
+            case "state" -> c = Comparator.comparing(
+            (Performance p) -> p.getState() == null ? "" : p.getState().name(),
+            Comparator.nullsLast(String::compareTo)
+            );
+            case "scheduled" -> c = Comparator.comparing(
+            (Performance p) -> safeLower(p.getScheduledSlot()),
+            Comparator.nullsLast(String::compareTo)
+            );
+            case "genre" -> c = Comparator
+            .comparing((Performance p) -> safeLower(p.getGenre()), Comparator.nullsLast(String::compareTo))
+            .thenComparing(p -> safeLower(p.getName()), Comparator.nullsLast(String::compareTo));
+            default -> c = Comparator
+            .comparing((Performance p) -> safeLower(p.getGenre()), Comparator.nullsLast(String::compareTo))
+            .thenComparing(p -> safeLower(p.getName()), Comparator.nullsLast(String::compareTo));
+        }
+
+        return desc ? c.reversed() : c;
+    }
+
+    private List<String> tokenize(String q) {
+        if (q == null || q.isBlank()) return List.of();
+        return Arrays.stream(q.trim().split("\\s+"))
+                .filter(s -> !s.isBlank())
+                .map(s -> s.toLowerCase(Locale.ROOT))
+                .collect(Collectors.toList());
+    }
+
+    private boolean matchesAllTokens(Performance p, List<String> tokens) {
+        if (tokens == null || tokens.isEmpty()) return true;
+
+        String haystack = (
+                safeLower(p.getName()) + " " +
+                safeLower(p.getDescription()) + " " +
+                safeLower(p.getGenre()) + " " +
+                safeLower(p.getBandMembers()) + " " +
+                safeLower(p.getTechnicalRequirements()) + " " +
+                safeLower(p.getScheduledSlot())
+        );
+
+        for (String t : tokens) {
+            if (!haystack.contains(t)) return false; 
+        }
+        return true;
+    }
+
+    private String safeLower(String s) {
+        return s == null ? "" : s.toLowerCase(Locale.ROOT);
+    }
 
     private Festival requireFestival(Performance p) {
-        Festival f = p.getFestival();
-        if (f == null || f.getId() == null) {
-            throw new BusinessRuleException("Performance has no festival");
-        }
-        return f;
+        if (p.getFestival() == null) throw new BusinessRuleException("Performance has no festival");
+        return p.getFestival();
     }
 
-    private void requireRole(Long userId, Long festivalId, String roleName) {
-        if (!hasRole(userId, festivalId, roleName)) {
-            throw new BusinessRuleException("User does not have required role: " + roleName);
+    private void ensureSubmitterRole(Long festivalId, Long userId) {
+        if (festivalId == null || userId == null) return;
+
+        Optional<String> existingRoleOpt = userFestivalRoleRepository.findRoleNameForUserInFestival(userId, festivalId);
+        if (existingRoleOpt.isPresent()) {
+            String existingRole = existingRoleOpt.get();
+            if ("SUBMITTER".equalsIgnoreCase(existingRole) || "ARTIST".equalsIgnoreCase(existingRole)) {
+                return;
+            }
+            throw new BusinessRuleException("User already has role " + existingRole + " in this festival");
+        }
+
+        Role role = roleRepository.findByName("SUBMITTER")
+                .orElseGet(() -> roleRepository.findByName("ARTIST")
+                        .orElseThrow(() -> new BusinessRuleException("Role SUBMITTER/ARTIST not found")));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessRuleException("User not found"));
+
+        Festival festival = festivalRepository.findById(festivalId)
+                .orElseThrow(() -> new BusinessRuleException("Festival not found"));
+
+        userFestivalRoleRepository.save(new UserFestivalRole(user, festival, role));
+    }
+
+    private void requireSubmitterOwner(Performance p, Long userId) {
+        Festival festival = requireFestival(p);
+        requireRole(userId, festival.getId(), "SUBMITTER");
+
+        if (p.getArtist() == null || p.getArtist().getId() == null) {
+            throw new BusinessRuleException("Performance has no artist owner");
+        }
+        if (userId == null || !p.getArtist().getId().equals(userId)) {
+            throw new BusinessRuleException("Only the SUBMITTER/owner can perform this action");
         }
     }
 
     private boolean hasRole(Long userId, Long festivalId, String roleName) {
         if (userId == null || festivalId == null || roleName == null) return false;
+        Optional<String> roleOpt = userFestivalRoleRepository.findRoleNameForUserInFestival(userId, festivalId);
+        if (roleOpt.isEmpty()) return false;
+        String r = roleOpt.get();
+        if (r.equalsIgnoreCase(roleName)) return true;
 
-        if ("PROGRAMMER".equalsIgnoreCase(roleName)) {
-            return userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "PROGRAMMER")
-                    || userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "ORGANIZER");
-        }
+        if ("SUBMITTER".equalsIgnoreCase(roleName) && "ARTIST".equalsIgnoreCase(r)) return true;
+        if ("ARTIST".equalsIgnoreCase(roleName) && "SUBMITTER".equalsIgnoreCase(r)) return true;
 
-        if ("SUBMITTER".equalsIgnoreCase(roleName)) {
-            return userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "SUBMITTER")
-                    || userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "ARTIST");
-        }
-
-        if ("ORGANIZER".equalsIgnoreCase(roleName)) {
-            return userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "ORGANIZER")
-                    || userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "PROGRAMMER");
-        }
-
-        if ("ARTIST".equalsIgnoreCase(roleName)) {
-            return userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "ARTIST")
-                    || userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, "SUBMITTER");
-        }
-
-        return userFestivalRoleRepository.existsByIdUserIdAndIdFestivalIdAndRole_Name(userId, festivalId, roleName);
+        return false;
     }
+
+    private void requireRole(Long userId, Long festivalId, String roleName) {
+    if (!hasRole(userId, festivalId, roleName)) {
+        throw new BusinessRuleException("Missing required role: " + roleName);
+    }
+    }
+
+
+
 
 
     private boolean isBlank(String s) {
@@ -612,34 +695,6 @@ public class PerformanceServiceImpl implements PerformanceService {
         performanceRepository.save(p);
 
         return p;
-    }
-
-    private List<String> tokenize(String query) {
-        if (query == null || query.trim().isEmpty()) return List.of();
-
-        return Arrays.stream(query.trim().toLowerCase(Locale.ROOT).split("\\s+"))
-                .filter(t -> !t.isBlank())
-                .distinct()
-                .toList();
-    }
-
-    private boolean matchesAllTokens(Performance p, List<String> tokens) {
-        if (tokens.isEmpty()) return true;
-
-        String haystack = (
-                safeLower(p.getName()) + " " +
-                        safeLower(p.getDescription()) + " " +
-                        safeLower(p.getGenre())
-        );
-
-        for (String t : tokens) {
-            if (!haystack.contains(t)) return false;
-        }
-        return true;
-    }
-
-    private String safeLower(String s) {
-        return s == null ? "" : s.toLowerCase(Locale.ROOT);
     }
 
 }

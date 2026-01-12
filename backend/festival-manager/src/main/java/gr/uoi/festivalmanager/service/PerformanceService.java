@@ -38,10 +38,33 @@ public interface PerformanceService {
     
     Performance finalReject(Long performanceId, Long programmerId, String reason);
 
+    PerformanceViewDto viewPerformanceView(Long performanceId, Long userId);
+
     List<PerformanceViewDto> searchPerformancesView(Long festivalId, Long userId, String query);
+
+    List<PerformanceViewDto> searchPerformancesViewAdvanced(
+            Long festivalId,
+            Long userId,
+            String q,
+            String name,
+            String genre,
+            String bandMembers,
+            String state,
+            String sortBy,
+            String sortDir
+    );
 
     List<Performance> searchPerformances(Long festivalId, String query);
 
-    PerformanceViewDto viewPerformanceView(Long performanceId, Long userId);
+    List<Performance> searchPerformancesAdvanced(
+            Long festivalId,
+            String q,
+            String name,
+            String genre,
+            String bandMembers,
+            String state,
+            String sortBy,
+            String sortDir
+    );
 
 }
