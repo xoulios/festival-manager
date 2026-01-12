@@ -35,19 +35,32 @@ public class PerformanceController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Performance> update(@PathVariable Long id, @RequestBody Performance performance) {
-        return ResponseEntity.ok(performanceService.updatePerformance(id, performance));
+    public ResponseEntity<Performance> update(
+        @PathVariable Long id,
+        @AuthenticationPrincipal SecurityUser principal,
+        @RequestBody Performance performance
+    ) {
+    return ResponseEntity.ok(performanceService.updatePerformance(id, principal.getId(), performance));
     }
+
 
     @PostMapping("/{id}/submit")
-    public ResponseEntity<Performance> submit(@PathVariable Long id) {
-        return ResponseEntity.ok(performanceService.submitPerformance(id));
+    public ResponseEntity<Performance> submit(
+        @PathVariable Long id,
+        @AuthenticationPrincipal SecurityUser principal
+    ) {
+    return ResponseEntity.ok(performanceService.submitPerformance(id, principal.getId()));
     }
 
+
     @PostMapping("/{id}/withdraw")
-    public ResponseEntity<Performance> withdraw(@PathVariable Long id) {
-        return ResponseEntity.ok(performanceService.withdrawPerformance(id));
+    public ResponseEntity<Performance> withdraw(
+        @PathVariable Long id,
+        @AuthenticationPrincipal SecurityUser principal
+    ) {
+    return ResponseEntity.ok(performanceService.withdrawPerformance(id, principal.getId()));
     }
+
 
     @PostMapping("/{id}/review")
     public ResponseEntity<Performance> review(

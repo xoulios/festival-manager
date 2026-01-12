@@ -78,61 +78,85 @@ public class PerformanceServiceImpl implements PerformanceService {
 
     @Override
     @Transactional
+    public Performance updatePerformance(Long performanceId, Long artistId, Performance updated) {
+    Performance existing = performanceRepository.findById(performanceId)
+            .orElseThrow(() -> new BusinessRuleException("Performance not found"));
+
+    requireOwnerAndSubmitter(artistId, existing);
+
+    if (existing.getState() != PerformanceState.CREATED) {
+        throw new BusinessRuleException("Performance can be updated only in CREATED state");
+    }
+
+    existing.setName(updated.getName());
+    existing.setDescription(updated.getDescription());
+    existing.setGenre(updated.getGenre());
+    existing.setDurationMinutes(updated.getDurationMinutes());
+    existing.setBandMembers(updated.getBandMembers());
+    existing.setTechnicalRequirements(updated.getTechnicalRequirements());
+    existing.setSetlist(updated.getSetlist());
+    existing.setPreferredRehearsalTimes(updated.getPreferredRehearsalTimes());
+    existing.setPreferredTimeSlots(updated.getPreferredTimeSlots());
+
+    return performanceRepository.save(existing);
+    }
+
+    @Override
+    @Transactional
     public Performance updatePerformance(Long performanceId, Performance updated) {
-        Performance existing = performanceRepository.findById(performanceId)
-                .orElseThrow(() -> new BusinessRuleException("Performance not found"));
+    throw new BusinessRuleException("Authentication required for updating performance");
+    }
 
-        if (existing.getState() != PerformanceState.CREATED) {
-            throw new BusinessRuleException("Performance can be updated only in CREATED state");
-        }
 
-        existing.setName(updated.getName());
-        existing.setDescription(updated.getDescription());
-        existing.setGenre(updated.getGenre());
-        existing.setDurationMinutes(updated.getDurationMinutes());
-        existing.setBandMembers(updated.getBandMembers());
-        existing.setTechnicalRequirements(updated.getTechnicalRequirements());
-        existing.setSetlist(updated.getSetlist());
-        existing.setPreferredRehearsalTimes(updated.getPreferredRehearsalTimes());
-        existing.setPreferredTimeSlots(updated.getPreferredTimeSlots());
+    @Override
+    @Transactional
+    public Performance submitPerformance(Long performanceId, Long artistId) {
+    Performance p = performanceRepository.findById(performanceId)
+            .orElseThrow(() -> new BusinessRuleException("Performance not found"));
 
-        return performanceRepository.save(existing);
+        requireOwnerAndSubmitter(artistId, p);
+    if (p.getState() != PerformanceState.CREATED) {
+        throw new BusinessRuleException("Only CREATED performances can be submitted");
+    }
+
+    Festival festival = requireFestival(p);
+    if (festival.getState() != FestivalState.SUBMISSION) {
+        throw new BusinessRuleException("Submission allowed only when festival is in SUBMISSION state");
+    }
+
+    p.setState(PerformanceState.SUBMITTED);
+    return performanceRepository.save(p);
     }
 
     @Override
     @Transactional
     public Performance submitPerformance(Long performanceId) {
-        Performance p = performanceRepository.findById(performanceId)
-                .orElseThrow(() -> new BusinessRuleException("Performance not found"));
+    throw new BusinessRuleException("Authentication required for submitting performance");
+    }
 
-        if (p.getState() != PerformanceState.CREATED) {
-            throw new BusinessRuleException("Only CREATED performances can be submitted");
-        }
 
-        Festival festival = requireFestival(p);
-        if (festival.getState() != FestivalState.SUBMISSION) {
-            throw new BusinessRuleException("Submission allowed only when festival is in SUBMISSION state");
-        }
+    @Override
+    @Transactional
+    public Performance withdrawPerformance(Long performanceId, Long artistId) {
+    Performance p = performanceRepository.findById(performanceId)
+            .orElseThrow(() -> new BusinessRuleException("Performance not found"));
 
-        p.setState(PerformanceState.SUBMITTED);
-        p.setSubmittedAt(LocalDateTime.now());
+    requireOwnerAndSubmitter(artistId, p);
 
-        return performanceRepository.save(p);
+    if (p.getState() != PerformanceState.CREATED) {
+        throw new BusinessRuleException("Withdraw allowed only in CREATED state");
+    }
+
+    performanceRepository.delete(p);
+    return p;
     }
 
     @Override
     @Transactional
     public Performance withdrawPerformance(Long performanceId) {
-        Performance p = performanceRepository.findById(performanceId)
-                .orElseThrow(() -> new BusinessRuleException("Performance not found"));
-
-        if (p.getState() != PerformanceState.CREATED) {
-            throw new BusinessRuleException("Withdraw allowed only in CREATED state");
-        }
-
-        performanceRepository.delete(p); 
-        return p;
+    throw new BusinessRuleException("Authentication required for withdrawing performance");
     }
+
     
     @Override
     @Transactional(readOnly = true)
@@ -401,6 +425,20 @@ public class PerformanceServiceImpl implements PerformanceService {
     return dto;
     }
 
+    private void requireOwnerAndSubmitter(Long artistId, Performance p) {
+    if (artistId == null) {
+        throw new BusinessRuleException("Unauthenticated user");
+    }
+    if (p.getArtist() == null || p.getArtist().getId() == null) {
+        throw new BusinessRuleException("Performance has no owner");
+    }
+    if (!p.getArtist().getId().equals(artistId)) {
+        throw new BusinessRuleException("Only the SUBMITTER/owner can perform this action");
+    }
+
+    Festival festival = requireFestival(p);
+    requireRole(artistId, festival.getId(), "SUBMITTER");
+    }
 
 
     private Festival requireFestival(Performance p) {

@@ -12,10 +12,16 @@ public interface PerformanceService {
 
     Performance updatePerformance(Long performanceId, Performance updated);
 
+    Performance updatePerformance(Long performanceId, Long artistId, Performance updated);
+
     Performance submitPerformance(Long performanceId);
+    
+    Performance submitPerformance(Long performanceId, Long artistId);
 
     Performance withdrawPerformance(Long performanceId);
-
+    
+    Performance withdrawPerformance(Long performanceId, Long artistId);
+    
     Performance reviewPerformance(Long performanceId, Long staffId, ReviewRequest request);
     
     Performance approvePerformance(Long performanceId, Long staffId);
@@ -37,5 +43,5 @@ public interface PerformanceService {
     List<Performance> searchPerformances(Long festivalId, String query);
 
     PerformanceViewDto viewPerformanceView(Long performanceId, Long userId);
-    
+
 }
