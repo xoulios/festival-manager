@@ -2,25 +2,22 @@ package gr.uoi.festivalmanager;
 
 import gr.uoi.festivalmanager.dto.FestivalCreateRequest;
 import gr.uoi.festivalmanager.dto.FestivalResponse;
-import gr.uoi.festivalmanager.enums.FestivalState;
 import gr.uoi.festivalmanager.entity.Role;
 import gr.uoi.festivalmanager.entity.User;
-import gr.uoi.festivalmanager.entity.UserFestivalRole;
+import gr.uoi.festivalmanager.enums.FestivalState;
 import gr.uoi.festivalmanager.exception.BusinessRuleException;
 import gr.uoi.festivalmanager.repository.RoleRepository;
 import gr.uoi.festivalmanager.repository.UserFestivalRoleRepository;
 import gr.uoi.festivalmanager.repository.UserRepository;
 import gr.uoi.festivalmanager.service.FestivalService;
+import java.time.LocalDate;
+import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDate;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @ActiveProfiles("test")
