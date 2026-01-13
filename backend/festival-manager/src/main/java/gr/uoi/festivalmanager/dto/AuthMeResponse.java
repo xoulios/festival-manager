@@ -8,9 +8,9 @@ public class AuthMeResponse {
         private Long festivalId;
         private String role;
 
-        public FestivalRole() {}
+        public FestivalRole() {} // Default constructor
 
-        public FestivalRole(Long festivalId, String role) {
+        public FestivalRole(Long festivalId, String role) { // με παραμέτρους
             this.festivalId = festivalId;
             this.role = role;
         }
@@ -22,14 +22,14 @@ public class AuthMeResponse {
         public void setRole(String role) { this.role = role; }
     }
 
-    private Long userId;
-    private String username;
-    private String effectiveRole;
-    private List<FestivalRole> festivalRoles;
+    private Long userId; // Χρήστης ID
+    private String username; // Όνομα χρήστη
+    private String effectiveRole; // Αποτελεσματικός ρόλος
+    private List<FestivalRole> festivalRoles; // Ρόλοι φεστιβάλ
 
-    public AuthMeResponse() {}
+    public AuthMeResponse() {} // Default constructor
 
-    public AuthMeResponse(Long userId, String username, String effectiveRole, List<FestivalRole> festivalRoles) {
+    public AuthMeResponse(Long userId, String username, String effectiveRole, List<FestivalRole> festivalRoles) { // με παραμέτρους 
         this.userId = userId;
         this.username = username;
         this.effectiveRole = effectiveRole;
