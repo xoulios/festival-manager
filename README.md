@@ -11,13 +11,7 @@ Festival Management App Spring Boot (REST API) and React frontend.
 - npm
 npm run dev
 
-Backend at: http://localhost:8080
-
-H2 Console (dev)    http://localhost:8080/h2
-
 Tests from folder backend/festival-manager with ./mvnw test
-
-Authentication (Basic Auth) curl -i -u programmer1:pass123 http://localhost:8080/api/festivals
 
 programmer1:pass123
 artist1:pass123
